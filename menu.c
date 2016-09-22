@@ -24,6 +24,32 @@
 #define MENU_INTERP_TIME 0.25f
 #define MENU_FADE_TIME 1.0f
 
+/* main menu
+	- Singleplayer
+	- Multiplayer
+	- Stats
+	- Options
+	- Quit
+*/
+
+enum menu_screens {
+	MENU_SCREEN_PRESS_START,
+	MENU_SCREEN_MAIN,
+	MENU_SCREEN_SINGLEPLAYER,
+	MENU_SCREEN_MULTIPLAYER,
+	MENU_SCREEN_STATS,
+	MENU_SCREEN_OPTIONS,
+	MENU_SCREEN_QUIT,
+	MENU_SCREEN_CHOOSE_MAP,
+	MENU_SCREEN_SETUP_GAME
+};
+
+enum menu_interp {
+	INTERP_LEFT,
+	INTERP_NONE,
+	INTERP_RIGHT
+};
+
 typedef struct preview {
 	int id;
 	bg3_map_preview* preview;
@@ -110,13 +136,31 @@ void bg3_print_text_alpha(int x, int y, float alpha, char* fmt, ...)
 	xTextSetColor(0xffffffff);
 }
 
+int inverted;
+float deadzone;
+int control_style;
+
+void menu_save_settings(bg3_base* base)
+{
+	base->inverted = inverted;
+	base->deadzone = deadzone;
+	base->control_style = control_style;
+
+	FILE* file = fopen("./config.ini", "w");
+	if (file == NULL) return;
+	fprintf(file, "[config]\r\ninverted = %s\r\ndeadzone = %.2f\r\nstyle = %s", (inverted == 0 ? "false" : "true"), deadzone, (control_style == 0 ? "ANALOG_LOOK" : "ANALOG_MOVE"));
+	fclose(file);
+}
+
 void bg3_menu_loop(bg3_base* base)
 {
 	if (base == NULL) return;
+	base->transition = BG3_FADE_IN;
+	base->fade = 1.0f;
 	bg3_map* map = bg3_load_map(99);
 	if (map == NULL)
 	{
-		base->state = BG3_EXIT;
+		xExit();
 		return;
 	}
 
@@ -188,107 +232,325 @@ void bg3_menu_loop(bg3_base* base)
 	previews* p = bg3_menu_load_previews(50);
 	if (p == NULL)
 	{
-		base->state = BG3_EXIT;
+		xExit();
 		return;
 	}
 
-	int stage = (base->started ? 1 : 0);
-	float fade = 1.0f;
+	int screen = (base->started ? MENU_SCREEN_MAIN : MENU_SCREEN_PRESS_START);
 	float time = 0.0f;
-	int choice = 0;
-	float dir = 0.0f;
+	int exiting = 0;
+
+	int selection = 0;
+	float interp_time = 0.0f;
+	int interp = INTERP_NONE;
 	float update = 0.0f;
 
-#define LASER_AMMO 10
-#define TSHELL_AMMO 10
-#define MISSILE_AMMO 6
+#define DEFAULT_SCORE_TARGET_ID 1
+#define DEFAULT_GAME_TIME_ID 1
+#define DEFAULT_SPAWN_TIME_ID 2
+#define DEFAULT_LASER_AMMO 4
+#define DEFAULT_TSHELL_AMMO 4
+#define DEFAULT_MISSILE_AMMO 2
 
-	int menu_option = 3;
-	int laser_ammo = LASER_AMMO;
-	int tshell_ammo = TSHELL_AMMO;
-	int missile_ammo = MISSILE_AMMO;
+	bg3_game_values game_values = {
+		BG3_GAME_DM,
+		DEFAULT_SCORE_TARGET_ID,
+		DEFAULT_GAME_TIME_ID,
+		DEFAULT_SPAWN_TIME_ID,
+		DEFAULT_LASER_AMMO,
+		DEFAULT_TSHELL_AMMO,
+		DEFAULT_MISSILE_AMMO
+	};
+
+#define GAME_SETUP_OPTIONS 7
+
+	int map_sel = 0;
+
+	bg3_stats stats;
 
 	xTimeUpdate();
-	while (xRunning() && base->state == BG3_MENU)
+	while (xRunning() && base->state == BG3_STATE_MENU)
 	{
 		xTimeUpdate();
 		float dt = xTimeGetDeltaTime();
 		time += dt;
 		xCtrlUpdate(dt);
-		if (stage == 0)
+		switch (screen)
 		{
+		case MENU_SCREEN_PRESS_START:
 			if (xCtrlPress(PSP_CTRL_START) || xCtrlPress(PSP_CTRL_CROSS))
 			{
-				stage = 1;
+				screen = MENU_SCREEN_MAIN;
 				base->started = 1;
-				fade = 0.0f;
 			}
-		}
-		else if (stage == 1)
-		{
-			if (xCtrlPress(PSP_CTRL_LEFT))
-			{
-				if (dir == 0.0f && choice > 0)
-				{
-					dir = -1.0f;
-				}
-			}
-			if (xCtrlPress(PSP_CTRL_RIGHT))
-			{
-				if (dir == 0.0f && choice < p->num-1)
-				{
-					dir = 1.0f;
-				}
-			}
-			if (xCtrlTap(PSP_CTRL_CROSS))
-			{
-				if (dir == 0.0f)
-				{
-					stage = 2;
-					menu_option = 3;
-					laser_ammo = LASER_AMMO;
-					tshell_ammo = TSHELL_AMMO;
-					missile_ammo = MISSILE_AMMO;
-				}
-			}
-		}
-#define MENU_UPDATE_TIME 0.1f
-		else if (stage == 2)
-		{
-			update += dt;
+			break;
+		case MENU_SCREEN_MAIN:
 			if (xCtrlTap(PSP_CTRL_UP))
 			{
-				if (menu_option > 0)
-					menu_option -= 1;
+				if (selection > 0)
+					selection -= 1;
 			}
 			if (xCtrlTap(PSP_CTRL_DOWN))
 			{
-				if (menu_option < 3)
-					menu_option += 1;
+				if (selection < 4)
+					selection += 1;
 			}
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				switch (selection)
+				{
+				case 0: screen = MENU_SCREEN_SINGLEPLAYER; break;
+				case 1: screen = MENU_SCREEN_MULTIPLAYER; break;
+				case 2:
+					bg3_load_stats(&stats);
+					screen = MENU_SCREEN_STATS;
+					break;
+				case 3:
+					inverted = base->inverted;
+					deadzone = base->deadzone;
+					control_style = base->control_style;
+					screen = MENU_SCREEN_OPTIONS;
+					break;
+				case 4: screen = MENU_SCREEN_QUIT; break;
+				}
+				selection = 0;
+			}
+			break;
+		case MENU_SCREEN_SINGLEPLAYER:
+			if (xCtrlTap(PSP_CTRL_UP))
+			{
+				if (selection > 0)
+					selection -= 1;
+			}
+			if (xCtrlTap(PSP_CTRL_DOWN))
+			{
+				if (selection < 3)
+					selection += 1;
+			}
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				if (selection < 3)
+				{
+					switch (selection)
+					{
+					case 0: game_values.game_type = BG3_GAME_DM; break;
+					case 1: game_values.game_type = BG3_GAME_TDM; break;
+					case 2: game_values.game_type = BG3_GAME_CTF; break;
+					}
+					screen = MENU_SCREEN_CHOOSE_MAP;
+					interp = INTERP_NONE;
+					interp_time = 0.0f;
+				}
+				else
+				{
+					screen = MENU_SCREEN_MAIN;
+				}
+				selection = 0;
+			}
+			if (xCtrlTap(PSP_CTRL_CIRCLE))
+			{
+				screen = MENU_SCREEN_MAIN;
+				selection = 0;
+			}
+			break;
+		case MENU_SCREEN_MULTIPLAYER:
+			if (xCtrlTap(PSP_CTRL_CROSS) || xCtrlTap(PSP_CTRL_CIRCLE))
+			{
+				screen = MENU_SCREEN_MAIN;
+				selection = 1;
+			}
+			break;
+		case MENU_SCREEN_STATS:
+			if (xCtrlTap(PSP_CTRL_CROSS) || xCtrlTap(PSP_CTRL_CIRCLE))
+			{
+				screen = MENU_SCREEN_MAIN;
+				selection = 2;
+			}
+			break;
+		case MENU_SCREEN_OPTIONS:
+			if (xCtrlTap(PSP_CTRL_UP))
+			{
+				if (selection > 0)
+				{
+					selection -= 1;
+				}
+			}
+			if (xCtrlTap(PSP_CTRL_DOWN))
+			{
+				if (selection < 3)
+				{
+					selection += 1;
+				}
+			}
+			switch (selection)
+			{
+			case 0:
+				//inverted
+				if (xCtrlTap(PSP_CTRL_LEFT) || xCtrlTap(PSP_CTRL_RIGHT))
+				{
+					inverted = !inverted;
+				}
+				break;
+			case 1:
+				//deadzone
+				if (xCtrlTap(PSP_CTRL_LEFT))
+				{
+					if (deadzone > 0.0f)
+					{
+						deadzone -= 0.05f;
+						if (deadzone < 0.0f)
+						{
+							deadzone = 0.0f;
+						}
+					}
+				}
+				if (xCtrlTap(PSP_CTRL_RIGHT))
+				{
+					if (deadzone < 1.0f)
+					{
+						deadzone += 0.05f;
+						if (deadzone > 1.0f)
+						{
+							deadzone = 1.0f;
+						}
+					}
+				}
+				break;
+			case 2:
+				//style
+				if (xCtrlTap(PSP_CTRL_LEFT) || xCtrlTap(PSP_CTRL_RIGHT))
+				{
+					control_style = !control_style;
+				}
+				break;
+			case 3:
+				//apply
+				if (xCtrlTap(PSP_CTRL_CROSS))
+				{
+					menu_save_settings(base);
+					screen = MENU_SCREEN_MAIN;
+					selection = 0;
+				}
+				break;
+			}
+			if (xCtrlTap(PSP_CTRL_CIRCLE))
+			{
+				screen = MENU_SCREEN_MAIN;
+				selection = 3;
+			}
+			break;
+		case MENU_SCREEN_QUIT:
+			if (xCtrlTap(PSP_CTRL_CIRCLE))
+			{
+				screen = MENU_SCREEN_MAIN;
+				selection = 4;
+			}
+			if (xCtrlTap(PSP_CTRL_LEFT) || xCtrlTap(PSP_CTRL_RIGHT))
+			{
+				selection = !selection;
+			}
+			switch (selection)
+			{
+			case 0:
+				if (xCtrlTap(PSP_CTRL_CROSS))
+				{
+					screen = MENU_SCREEN_MAIN;
+					selection = 4;
+				}
+				break;
+			case 1:
+				if (xCtrlTap(PSP_CTRL_CROSS))
+				{
+					exiting = 1;
+					base->transition = BG3_FADE_OUT;
+					base->fade = 0.0f;
+				}
+				break;
+			}
+			break;
+		case MENU_SCREEN_CHOOSE_MAP:
+			if (interp == INTERP_NONE)
+			{
+				if (xCtrlPress(PSP_CTRL_LEFT))
+				{
+					if (selection > 0)
+					{
+						interp = INTERP_LEFT;
+						interp_time = 0.0f;
+					}
+				}
+				if (xCtrlPress(PSP_CTRL_RIGHT))
+				{
+					if (selection < p->num-1)
+					{
+						interp = INTERP_RIGHT;
+						interp_time = 0.0f;
+					}
+				}
+				if (xCtrlTap(PSP_CTRL_CROSS))
+				{
+					screen = MENU_SCREEN_SETUP_GAME;
+					map_sel = selection;
+					selection = GAME_SETUP_OPTIONS-1;
+					game_values.score_target_id = DEFAULT_SCORE_TARGET_ID;
+					game_values.game_time_id = DEFAULT_GAME_TIME_ID;
+					game_values.spawn_time_id = DEFAULT_SPAWN_TIME_ID;
+					game_values.spawn_ammo_laser = DEFAULT_LASER_AMMO;
+					game_values.spawn_ammo_tshells = DEFAULT_TSHELL_AMMO;
+					game_values.spawn_ammo_missiles = DEFAULT_MISSILE_AMMO;
+				}
+				if (xCtrlTap(PSP_CTRL_CIRCLE))
+				{
+					screen = MENU_SCREEN_SINGLEPLAYER;
+					selection = 0;
+				}
+			}
+			break;
+		case MENU_SCREEN_SETUP_GAME:
+			update += dt;
+			if (xCtrlTap(PSP_CTRL_UP))
+			{
+				if (selection > 0)
+					selection -= 1;
+			}
+			if (xCtrlTap(PSP_CTRL_DOWN))
+			{
+				if (selection < GAME_SETUP_OPTIONS-1)
+					selection += 1;
+			}
+#define MENU_UPDATE_TIME 0.15f
 			if (xCtrlPress(PSP_CTRL_LEFT))
 			{
 				if (update >= MENU_UPDATE_TIME)
 				{
 					update = 0.0f;
-					switch (menu_option)
+					switch (selection)
 					{
 					case 0:
-						laser_ammo -= 1;
+						if (game_values.score_target_id > 0)
+							game_values.score_target_id -= 1;
 						break;
 					case 1:
-						tshell_ammo -= 1;
+						if (game_values.game_time_id > 0)
+							game_values.game_time_id -= 1;
 						break;
 					case 2:
-						missile_ammo -= 1;
+						if (game_values.spawn_time_id > 0)
+							game_values.spawn_time_id -= 1;
+						break;
+					case 3:
+						if (game_values.spawn_ammo_laser > 0)
+							game_values.spawn_ammo_laser -= 1;
+						break;
+					case 4:
+						if (game_values.spawn_ammo_tshells > 0)
+							game_values.spawn_ammo_tshells -= 1;
+						break;
+					case 5:
+						if (game_values.spawn_ammo_missiles > 0)
+							game_values.spawn_ammo_missiles -= 1;
 						break;
 					}
-					if (laser_ammo < 0)
-						laser_ammo = 0;
-					if (tshell_ammo < 0)
-						tshell_ammo = 0;
-					if (missile_ammo < 0)
-						missile_ammo = 0;
 				}
 
 			}
@@ -297,48 +559,56 @@ void bg3_menu_loop(bg3_base* base)
 				if (update >= MENU_UPDATE_TIME)
 				{
 					update = 0.0f;
-					switch (menu_option)
+					switch (selection)
 					{
 					case 0:
-						laser_ammo += 1;
+						if (game_values.score_target_id < BG3_GAME_SCORES_NUM-1)
+							game_values.score_target_id += 1;
 						break;
 					case 1:
-						tshell_ammo += 1;
+						if (game_values.game_time_id < BG3_GAME_TIMES_NUM-1)
+							game_values.game_time_id += 1;
 						break;
 					case 2:
-						missile_ammo += 1;
+						if (game_values.spawn_time_id < BG3_GAME_SPAWN_NUM-1)
+							game_values.spawn_time_id += 1;
+						break;
+					case 3:
+						if (game_values.spawn_ammo_laser < LASER_MAX_AMMO)
+							game_values.spawn_ammo_laser += 1;
+						break;
+					case 4:
+						if (game_values.spawn_ammo_tshells < TSHELL_MAX_AMMO)
+							game_values.spawn_ammo_tshells += 1;
+						break;
+					case 5:
+						if (game_values.spawn_ammo_missiles < MISSILE_MAX_AMMO)
+							game_values.spawn_ammo_missiles += 1;
 						break;
 					}
-					if (laser_ammo > (int)LASER_MAX_AMMO)
-						laser_ammo = (int)LASER_MAX_AMMO;
-					if (tshell_ammo > TSHELL_MAX_AMMO)
-						tshell_ammo = TSHELL_MAX_AMMO;
-					if (missile_ammo > MISSILE_MAX_AMMO)
-						missile_ammo = MISSILE_MAX_AMMO;
 				}
 			}
 			if (xCtrlTap(PSP_CTRL_CROSS))
 			{
-				if (menu_option == 3)
+				if (selection == GAME_SETUP_OPTIONS-1)
 				{
-					bg3_base_load_game(base, p->previews[choice].id);
+					bg3_base_load_game(base, p->previews[map_sel].id, &game_values);
 					if (base->game.loaded)
 					{
-						base->game.spawn_ammo_laser = laser_ammo;
-						base->game.spawn_ammo_tshells = tshell_ammo;
-						base->game.spawn_ammo_missiles = missile_ammo;
 						bg3_base_init_effects(base);
 						bg3_base_load_resources(base);
-						stage = 3;
-						fade = 0.0f;
+						base->transition = BG3_FADE_OUT;
+						base->fade = 0.0f;
 						xTimeUpdate();
 					}
 				}
 			}
 			if (xCtrlTap(PSP_CTRL_CIRCLE))
 			{
-				stage = 1;
+				screen = MENU_SCREEN_CHOOSE_MAP;
+				selection = 0;
 			}
+			break;
 		}
 
 		xParticleSystemUpdate(smoke_ps, dt);
@@ -384,163 +654,329 @@ void bg3_menu_loop(bg3_base* base)
 		xTexSetImage(smoke_tex);
 		xParticleSystemRender(smoke_ps, &view);
 
-		if (stage == 0 || stage == 1)
+		switch (base->transition)
 		{
-			fade -= dt/MENU_FADE_TIME;
-			if (fade < 0.0f)
+		case BG3_FADE_IN:
+			base->fade -= dt/MENU_FADE_TIME;
+			if (base->fade <= 0.0f)
 			{
-				fade = 0.0f;
+				base->fade = 0.0f;
+				base->transition = BG3_NO_TRANSITION;
 			}
-			if (stage == 0)
+			break;
+		case BG3_FADE_OUT:
+			base->fade += dt/MENU_FADE_TIME;
+			if (base->fade >= 1.0f)
+			{
+				base->fade = 1.0f;
+				base->transition = BG3_NO_TRANSITION;
+				if (exiting)
+				{
+					base->state = BG3_STATE_EXIT;
+				}
+				else
+				{
+					base->state = BG3_STATE_GAME;
+				}
+
+			}
+			break;
+		}
+
+		bg3_set_blend(BLEND_AVERAGE_WITH_ALPHA, 0);
+
+#define MENU_BOX_WIDTH 250
+#define MENU_BOX_HEIGHT 100
+#define MENU_BOX_Y 100
+
+#define MENU_TEXT_HEIGHT	15
+#define MENU_SELECT_HEIGHT	16
+
+#define MENU_NO_X			(X_SCREEN_WIDTH/2-40)
+#define MENU_YES_X			(X_SCREEN_WIDTH/2+40)
+#define MENU_YESNO_WIDTH	50
+
+#define MENU_START_X		(X_SCREEN_WIDTH/2-100)
+#define MENU_START_Y		110
+#define MENU_VALUE_X		(X_SCREEN_WIDTH/2+100)
+
+#define MENU_START2_X 260
+#define MENU_VALUE2_X 420
+#define MENU_START2_Y 80
+
+		int x, y;
+		int width;
+
+		if (!exiting)
+		{
+			bg3_draw_tex_center(base->logo_tex, X_SCREEN_WIDTH/2, 40);
+
+			if (screen == MENU_SCREEN_PRESS_START)
 			{
 				xTextSetAlign(X_ALIGN_CENTER);
 				float alpha = 0.6f + 0.4f*x_sinf(2*time);
 				bg3_print_text_alpha(X_SCREEN_WIDTH/2, 200, alpha, "Press Start");
 			}
-		}
-		if (stage > 0)
-		{
-			if (stage == 3)
+			else if (screen == MENU_SCREEN_CHOOSE_MAP)
 			{
-				fade += dt/MENU_FADE_TIME;
-				if (fade >= 1.0f)
+				if (interp != INTERP_NONE)
 				{
-					fade = 1.0f;
-					base->state = BG3_GAME_DM;
+					interp_time += dt/MENU_INTERP_TIME;
+					if (interp_time >= 1.0f)
+					{
+						if (interp == INTERP_LEFT)
+						{
+							selection -= 1;
+						}
+						else
+						{
+							selection += 1;
+						}
+						interp = INTERP_NONE;
+					}
 				}
-			}
 
-			if (dir < 0.0f)
-			{
-				if (dir + dt/MENU_INTERP_TIME > 0.0f)
-				{
-					dir = 0.0f;
-					choice -= 1;
-				}
-				else
-				{
-					dir += dt/MENU_INTERP_TIME;
-				}
-			}
-			else if (dir > 0.0f)
-			{
-				if (dir - dt/MENU_INTERP_TIME < 0.0f)
-				{
-					dir = 0.0f;
-					choice += 1;
-				}
-				else
-				{
-					dir -= dt/MENU_INTERP_TIME;
-				}
-			}
-
-			sceGuDisable(GU_BLEND);
-
-			int x, y, size;
-
-			if (stage == 1)
-			{
-				if (dir < 0.0f && choice > 1)
+				if (interp == INTERP_LEFT && selection > 1)
 				{
 					//far left
-					x = (int)interpolate((float)TEX_FAR_LEFT, (float)TEX_LEFT, (dir == 0.0f ? 0.0f : 1.0f-x_absf(dir)));
-					size = TEX_SMALL_SIZE;
-					bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, size+2, size+2, 0x000000);
-					bg3_menu_draw_tex_center(p->previews[choice-2].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, size, size);
+					x = (int)interpolate((float)TEX_FAR_LEFT, (float)TEX_LEFT, interp_time);
+					width = TEX_SMALL_SIZE;
+					bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, width+2, width+2, 0xff000000);
+					bg3_menu_draw_tex_center(p->previews[selection-2].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, width, width);
 				}
 
-				if (choice > 0)
+				if (selection > 0)
 				{
 					//left
-					x = (int)interpolate((float)TEX_LEFT, (float)(dir >= 0.0f ? -10 : TEX_MIDDLE), (dir == 0.0f ? 0.0f : 1.0f-x_absf(dir)));
-					size = (int)interpolate((float)TEX_SMALL_SIZE, (float)(dir >= 0.0f ? TEX_SMALL_SIZE : TEX_LARGE_SIZE), (dir == 0.0f ? 0.0f : 1.0f-x_absf(dir)));
-					bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, size+2, size+2, 0x000000);
-					bg3_menu_draw_tex_center(p->previews[choice-1].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, size, size);
+					x = (int)interpolate((float)TEX_LEFT, (float)(interp == INTERP_RIGHT ? TEX_FAR_LEFT : TEX_MIDDLE), (interp == INTERP_NONE ? 0.0f : interp_time));
+					width = (int)interpolate((float)TEX_SMALL_SIZE, (float)(interp == INTERP_RIGHT ? TEX_SMALL_SIZE : TEX_LARGE_SIZE), (interp == INTERP_NONE ? 0.0f : interp_time));
+					bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, width+2, width+2, 0xff000000);
+					bg3_menu_draw_tex_center(p->previews[selection-1].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, width, width);
 				}
 
 				//middle
-				x = (int)interpolate((float)TEX_MIDDLE, (float)(dir > 0.0f ? TEX_LEFT : TEX_RIGHT), (dir == 0.0f ? 0.0f : 1.0f-x_absf(dir)));
-				size = (int)interpolate((float)TEX_LARGE_SIZE, (float)TEX_SMALL_SIZE, (dir == 0.0f ? 0.0f : 1.0f-x_absf(dir)));
-				bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, size+2, size+2, 0x000000);
-				bg3_menu_draw_tex_center(p->previews[choice].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, size, size);
+				x = (int)interpolate((float)TEX_MIDDLE, (float)(interp == INTERP_RIGHT ? TEX_LEFT : TEX_RIGHT), (interp == INTERP_NONE ? 0.0f : interp_time));
+				width = (int)interpolate((float)TEX_LARGE_SIZE, (float)TEX_SMALL_SIZE, (interp == INTERP_NONE ? 0.0f : interp_time));
+				bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, width+2, width+2, 0xff000000);
+				bg3_menu_draw_tex_center(p->previews[selection].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, width, width);
 
-				if (choice < p->num-1)
+				if (selection < p->num-1)
 				{
 					//right
-					x = (int)interpolate((float)TEX_RIGHT, (float)(dir <= 0.0f ? X_SCREEN_WIDTH+10 : TEX_MIDDLE), (dir == 0.0f ? 0.0f : 1.0f-x_absf(dir)));
-					size = (int)interpolate((float)TEX_SMALL_SIZE, (float)(dir <= 0.0f ? TEX_SMALL_SIZE : TEX_LARGE_SIZE), (dir == 0.0f ? 0.0f : 1.0f-x_absf(dir)));
-					bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, size+2, size+2, 0x000000);
-					bg3_menu_draw_tex_center(p->previews[choice+1].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, size, size);
+					x = (int)interpolate((float)TEX_RIGHT, (float)(interp == INTERP_LEFT ? TEX_FAR_RIGHT : TEX_MIDDLE), (interp == INTERP_NONE ? 0.0f : interp_time));
+					width = (int)interpolate((float)TEX_SMALL_SIZE, (float)(interp == INTERP_LEFT ? TEX_SMALL_SIZE : TEX_LARGE_SIZE), (interp == INTERP_NONE ? 0.0f : interp_time));
+					bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, width+2, width+2, 0xff000000);
+					bg3_menu_draw_tex_center(p->previews[selection+1].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, width, width);
 				}
 
-				if (dir > 0.0f && choice < p->num-2)
+				if (interp == INTERP_RIGHT && selection < p->num-2)
 				{
 					//far right
-					x = (int)interpolate((float)TEX_FAR_RIGHT, (float)TEX_RIGHT, (dir == 0.0f ? 0.0f : 1.0f-x_absf(dir)));
-					size = TEX_SMALL_SIZE;
-					bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, size+2, size+2, 0x000000);
-					bg3_menu_draw_tex_center(p->previews[choice+2].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, size, size);
+					x = (int)interpolate((float)TEX_FAR_RIGHT, (float)TEX_RIGHT, interp_time);
+					width = TEX_SMALL_SIZE;
+					bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, width+2, width+2, 0xff000000);
+					bg3_menu_draw_tex_center(p->previews[selection+2].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, width, width);
 				}
 
 				xTextSetAlign(X_ALIGN_CENTER);
 				x = X_SCREEN_WIDTH/2;
 				y = 205;
-				bg3_print_text(x, y, p->previews[choice].preview->name);
-				y += 15;
-				bg3_print_text(x, y, "%ix%i", p->previews[choice].preview->width, p->previews[choice].preview->width);
-				y += 15;
-				bg3_print_text(x, y, "%i Players", p->previews[choice].preview->players);
+				bg3_print_text(x, y, p->previews[selection].preview->name);
+				y += MENU_TEXT_HEIGHT;
+				bg3_print_text(x, y, "%ix%i", p->previews[selection].preview->width, p->previews[selection].preview->width);
+				y += MENU_TEXT_HEIGHT;
+				bg3_print_text(x, y, "%i Players", p->previews[selection].preview->players);
+			}
+			else if (screen == MENU_SCREEN_SETUP_GAME)
+			{
+
+				x = X_SCREEN_WIDTH/4;
+				y = X_SCREEN_HEIGHT/2;
+				width = TEX_LARGE_SIZE;
+				bg3_menu_draw_rect_center(x, y, width+2, width+2, 0xff000000);
+				bg3_menu_draw_tex_center(p->previews[map_sel].preview->terrain_tex, x, y, width, width);
+
+				y = MENU_START2_Y + selection*MENU_TEXT_HEIGHT;
+				width = MENU_VALUE2_X - MENU_START2_X + 20;
+				bg3_draw_box(MENU_START2_X - 10, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+
+				y = MENU_START2_Y;
 				xTextSetAlign(X_ALIGN_LEFT);
+				bg3_print_text(MENU_START2_X, y, "Score Limit:");
+				xTextSetAlign(X_ALIGN_RIGHT);
+				bg3_print_text(MENU_VALUE2_X, y, "%i", bg3_game_scores[game_values.score_target_id]);
+				y += MENU_TEXT_HEIGHT;
+				xTextSetAlign(X_ALIGN_LEFT);
+				bg3_print_text(MENU_START2_X, y, "Time Limit:");
+				xTextSetAlign(X_ALIGN_RIGHT);
+				bg3_print_text(MENU_VALUE2_X, y, "%i:%02i", bg3_game_times[game_values.game_time_id]/60, bg3_game_times[game_values.game_time_id]%60);
+				y += MENU_TEXT_HEIGHT;
+				xTextSetAlign(X_ALIGN_LEFT);
+				bg3_print_text(MENU_START2_X, y, "Spawn Time:");
+				xTextSetAlign(X_ALIGN_RIGHT);
+				bg3_print_text(MENU_VALUE2_X, y, "%i s", bg3_game_spawns[game_values.spawn_time_id]);
+				y += MENU_TEXT_HEIGHT;
+				xTextSetAlign(X_ALIGN_LEFT);
+				bg3_print_text(MENU_START2_X, y, "Laser Ammo:");
+				xTextSetAlign(X_ALIGN_RIGHT);
+				bg3_print_text(MENU_VALUE2_X, y, "%i", game_values.spawn_ammo_laser);
+				y += MENU_TEXT_HEIGHT;
+				xTextSetAlign(X_ALIGN_LEFT);
+				bg3_print_text(MENU_START2_X, y, "Tank Shell Ammo:");
+				xTextSetAlign(X_ALIGN_RIGHT);
+				bg3_print_text(MENU_VALUE2_X, y, "%i", game_values.spawn_ammo_tshells);
+				y += MENU_TEXT_HEIGHT;
+				xTextSetAlign(X_ALIGN_LEFT);
+				bg3_print_text(MENU_START2_X, y, "Missile Ammo:");
+				xTextSetAlign(X_ALIGN_RIGHT);
+				bg3_print_text(MENU_VALUE2_X, y, "%i", game_values.spawn_ammo_missiles);
+				y += MENU_TEXT_HEIGHT;
+				xTextSetAlign(X_ALIGN_CENTER);
+				bg3_print_text(MENU_START2_X + (MENU_VALUE2_X-MENU_START2_X)/2, y, "Start Game");
 			}
 			else
 			{
-				x = X_SCREEN_WIDTH/2;
-				y = 130;
-				size = TEX_SMALL_SIZE;
-				bg3_menu_draw_rect_center(x, y, size+2, size+2, 0x000000);
-				bg3_menu_draw_tex_center(p->previews[choice].preview->terrain_tex, x, y, size, size);
-#define MENU_START_X 170
-#define MENU_START_Y 200
-#define MENU_VALUE_X 310
-				//draw box
-				x = MENU_START_X - 10;
-				y = MENU_START_Y + menu_option*15;
-				int width = MENU_VALUE_X - x + 10;
-				int height = 16;
-				bg3_draw_rect(x, y, width, height, 0xff7f7f7f);
-				bg3_draw_outline(x-1, y-1, width+1, height+1, 0xff000000);
 
-				xTextSetAlign(X_ALIGN_CENTER);
-				bg3_print_text(X_SCREEN_WIDTH/2, MENU_START_Y-15, p->previews[choice].preview->name);
-				xTextSetAlign(X_ALIGN_LEFT);
-				y = MENU_START_Y;
-				bg3_print_text(MENU_START_X, y, "Laser Ammo:");
-				y += 15;
-				bg3_print_text(MENU_START_X, y, "Tank Shell Ammo:");
-				y += 15;
-				bg3_print_text(MENU_START_X, y, "Missile Ammo:");
+				bg3_draw_box(X_SCREEN_WIDTH/2-MENU_BOX_WIDTH/2, MENU_BOX_Y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, 0x7f555555, 0xff000000);
 
-				xTextSetAlign(X_ALIGN_RIGHT);
-				y = MENU_START_Y;
-				bg3_print_text(MENU_VALUE_X, y, "%i", laser_ammo);
-				y += 15;
-				bg3_print_text(MENU_VALUE_X, y, "%i", tshell_ammo);
-				y += 15;
-				bg3_print_text(MENU_VALUE_X, y, "%i", missile_ammo);
+				switch (screen)
+				{
+				case MENU_SCREEN_MAIN:
+					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
+					width = 100;
+					bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
 
-				xTextSetAlign(X_ALIGN_CENTER);
-				bg3_print_text(X_SCREEN_WIDTH/2, y+15, "Start Game");
+					xTextSetAlign(X_ALIGN_CENTER);
+					y = MENU_START_Y;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Singleplayer");
+					y += MENU_TEXT_HEIGHT;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Multiplayer");
+					y += MENU_TEXT_HEIGHT;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "View Stats");
+					y += MENU_TEXT_HEIGHT;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Options");
+					y += MENU_TEXT_HEIGHT;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Quit");
+					break;
+				case MENU_SCREEN_SINGLEPLAYER:
+					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
+					width = 130;
+					bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+
+					xTextSetAlign(X_ALIGN_CENTER);
+					y = MENU_START_Y;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Deathmatch");
+					y += MENU_TEXT_HEIGHT;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Team Deathmatch");
+					y += MENU_TEXT_HEIGHT;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Capture The Flag");
+					y += MENU_TEXT_HEIGHT;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Back");
+					break;
+				case MENU_SCREEN_MULTIPLAYER:
+					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
+					width = 130;
+					bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+
+					xTextSetAlign(X_ALIGN_CENTER);
+					y = MENU_START_Y;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Back");
+					break;
+				case MENU_SCREEN_STATS:
+					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
+					width = 130;
+					bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+
+					xTextSetAlign(X_ALIGN_CENTER);
+					y = MENU_START_Y;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Back");
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Games Played:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%i", stats.games_played);
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Kills:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%i", stats.score_history.kills);
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Assists:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%i", stats.score_history.assists);
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Deaths:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%i", stats.score_history.deaths);
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Suicides:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%i", stats.score_history.suicides);
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Shots Fired:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%.2f", stats.score_history.shots_fired);
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Shots Hit:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%.2f", stats.score_history.shots_hit);
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Objectives Met:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%i", stats.score_history.objectives_achieved);
+					break;
+				case MENU_SCREEN_OPTIONS:
+					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
+					width = MENU_VALUE_X - MENU_START_X + 20;
+					bg3_draw_box(MENU_START_X - 10, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+
+					y = MENU_START_Y;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Look Inversion:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%s", (inverted ? "Yes" : "No"));
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Analog Deadzone:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%.2f", deadzone);
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_LEFT);
+					bg3_print_text(MENU_START_X, y, "Control Style:");
+					xTextSetAlign(X_ALIGN_RIGHT);
+					bg3_print_text(MENU_VALUE_X, y, "%s", (control_style ? "Analog Move" : "Analog Look"));
+					y += MENU_TEXT_HEIGHT;
+					xTextSetAlign(X_ALIGN_CENTER);
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Apply");
+					break;
+				case MENU_SCREEN_QUIT:
+					xTextSetAlign(X_ALIGN_CENTER);
+					y = MENU_START_Y;
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Are you sure?");
+					y += MENU_TEXT_HEIGHT;
+					if (selection == 0)
+					{
+						bg3_draw_box(MENU_NO_X-MENU_YESNO_WIDTH/2, y, MENU_YESNO_WIDTH, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+					}
+					else
+					{
+						bg3_draw_box(MENU_YES_X-MENU_YESNO_WIDTH/2, y, MENU_YESNO_WIDTH, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+					}
+					bg3_print_text(MENU_NO_X, y, "No");
+					bg3_print_text(MENU_YES_X, y, "Yes");
+					break;
+				}
 			}
 		}
 
-		sceGuEnable(GU_BLEND);
-
 		bg3_set_blend(BLEND_AVERAGE_WITH_ALPHA, 0);
-		bg3_draw_tex_center(base->logo_tex, X_SCREEN_WIDTH/2, 40);
-
-		bg3_set_blend(BLEND_AVERAGE_WITH_ALPHA, 0);
-		bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_COLOR(0.0f, 0.0f, 0.0f, fade));
+		bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_COLOR(0.0f, 0.0f, 0.0f, base->fade));
 
 		xGuFrameEnd();
 	}

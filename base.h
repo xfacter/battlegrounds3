@@ -72,6 +72,32 @@ typedef struct bg3_powerups {
 	powerup* powerups;
 } bg3_powerups;
 
+typedef struct bg3_score {
+	int kills;
+	int deaths;
+	int assists;
+	int suicides;
+	float shots_fired;
+	float shots_hit;
+	int objectives_achieved;
+} bg3_score;
+
+typedef struct bg3_stats {
+	int games_played;
+	//int seconds_played;
+	bg3_score score_history;
+} bg3_stats;
+
+typedef struct bg3_game_values {
+	int game_type;
+	int score_target_id;
+	int game_time_id;
+	int spawn_time_id;
+	int spawn_ammo_laser;
+	int spawn_ammo_tshells;
+	int spawn_ammo_missiles;
+} bg3_game_values;
+
 typedef struct bg3_ai {
 	int state;
 	astar_path* path;
@@ -84,7 +110,7 @@ typedef struct bg3_ai {
 
 typedef struct bg3_player {
 	int team;
-	int score;
+	int* damaged_by;
 
 	ScePspFVector3 pos;
 	ScePspFVector3 vel;
@@ -201,9 +227,15 @@ typedef struct bg3_effects {
 
 typedef struct bg3_game {
 	int loaded;
+
+	bg3_game_values values;
+	float time_elapsed;
+	int game_over;
+
 	int player;
 	int num_players;
 	bg3_player* players;
+	bg3_score* scores;
 	bg3_map* map;
 	bg3_tshells* tshells;
 	bg3_bullets* bullets;
@@ -214,12 +246,6 @@ typedef struct bg3_game {
 	float fog_far;
 	u32 fog_color;
 	int paused;
-	int exit;
-	float fade;
-
-	int spawn_ammo_laser;
-	int spawn_ammo_tshells;
-	int spawn_ammo_missiles;
 } bg3_game;
 
 typedef struct bg3_base {
@@ -229,6 +255,9 @@ typedef struct bg3_base {
 	bg3_game game;
 	int state;
 	int started;
+
+	int transition;
+	float fade;
 
 	float hover_height;
 	ScePspFVector3 mgun_offset;
@@ -240,6 +269,7 @@ typedef struct bg3_base {
 
 	int inverted;
 	float deadzone;
+	int control_style;
 } bg3_base;
 
 bg3_base* bg3_create_base();
@@ -254,15 +284,21 @@ void bg3_base_init_effects(bg3_base* base);
 
 void bg3_base_free_effects(bg3_base* base);
 
-void bg3_base_load_game(bg3_base* base, int map_id);
+void bg3_base_load_game(bg3_base* base, int map_id, bg3_game_values* values);
 
 void bg3_base_free_game(bg3_base* base);
 
+void bg3_load_stats(bg3_stats* stats);
+
+void bg3_save_stats(bg3_score* score);
+
+int bg3_is_game_over(bg3_base* base);
+
 void bg3_spawn_player(bg3_base* base, int player);
 
-int bg3_damage_player(bg3_base* base, int player, float shields_dmg, float armor_dmg);
+void bg3_damage_player(bg3_base* base, int source, int target, float shields_dmg, float armor_dmg);
 
-int bg3_damage_area(bg3_base* base, int player, ScePspFVector3* center, float inner_radius, float outer_radius, float shields_dmg, float armor_dmg);
+int bg3_damage_area(bg3_base* base, int source, ScePspFVector3* center, float inner_radius, float outer_radius, float shields_dmg, float armor_dmg);
 
 void bg3_create_explosion(bg3_base* base, xVector3f* pos);
 

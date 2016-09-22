@@ -411,25 +411,37 @@ static u32 SPAD_largestblock()
 
 void* x_malloc(u32 size)
 {
-    void* ptr = malloc(size);
-    if (ptr) X_LOG("Successfully allocated %u bytes to main memory at 0x%08x.", size, (u32)ptr);
-    else X_LOG("Failed to allocate %u bytes to main memory.", size);
+    void* ptr = NULL;
+	if (size > 0)
+		ptr = malloc(size);
+	if (ptr == NULL)
+		X_LOG("Failed to allocate %u bytes to main memory.", size);
+	else
+		X_LOG("Successfully allocated %u bytes to main memory at 0x%08x.", size, (u32)ptr);
     return ptr;
 }
 
 void* x_valloc(u32 size)
 {
-    void* ptr = VRAM_alloc(size);
-    if (ptr) X_LOG("Successfully allocated %u bytes to relative VRAM address 0x%08x, largest block %u bytes.", size, (u32)X_VREL(ptr), VRAM_largestblock());
-    else X_LOG("Failed to allocate %u bytes in VRAM, largest block %u bytes.", size, VRAM_largestblock());
+    void* ptr = NULL;
+	if (size > 0)
+		ptr = VRAM_alloc(size);
+	if (ptr == NULL)
+		X_LOG("Failed to allocate %u bytes in VRAM, largest block %u bytes.", size, VRAM_largestblock());
+	else
+		X_LOG("Successfully allocated %u bytes to relative VRAM address 0x%08x, largest block %u bytes.", size, (u32)X_VREL(ptr), VRAM_largestblock());
     return ptr;
 }
 
 void* x_salloc(u32 size)
 {
-    void* ptr = SPAD_alloc(size);
-    if (ptr) X_LOG("Successfully allocated %u bytes to Scratchpad at 0x%08x, largest block %u bytes.", size, (u32)ptr, SPAD_largestblock());
-    else X_LOG("Failed to allocate %u bytes on Scratchpad, largest block %u bytes.", size, SPAD_largestblock());
+    void* ptr = NULL;
+	if (size > 0)
+		ptr = SPAD_alloc(size);
+	if (ptr == NULL)
+		X_LOG("Failed to allocate %u bytes on Scratchpad, largest block %u bytes.", size, SPAD_largestblock());
+	else
+		X_LOG("Successfully allocated %u bytes to Scratchpad at 0x%08x, largest block %u bytes.", size, (u32)ptr, SPAD_largestblock());
     return ptr;
 }
 
@@ -443,7 +455,7 @@ void* x_remalloc(void* ptr, u32 size)
 
 void x_free(void* ptr)
 {
-    if (!ptr)
+    if (ptr == NULL)
     {
         X_LOG("Error, attempting to free invalid pointer.", 0);
     }

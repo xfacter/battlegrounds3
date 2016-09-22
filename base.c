@@ -20,13 +20,22 @@ bg3_base* bg3_create_base()
 	base->game.loaded = 0;
 	base->game.player = 0;
 	base->game.num_players = 0;
+	base->game.players = NULL;
+	base->game.scores = NULL;
+	base->game.map = NULL;
+	base->game.tshells = NULL;
+	base->game.bullets = NULL;
+	base->game.missiles = NULL;
+	base->game.powerups = NULL;
 	base->game.ai_update_time = 0.0f;
 	base->game.fog_near = 1000.0f;
 	base->game.fog_far = 1000.0f;
 	base->game.fog_color = 0xffffff;
 	base->game.paused = 0;
-	base->state = BG3_MENU;
+	base->state = BG3_STATE_MENU;
 	base->started = 0;
+	base->transition = BG3_FADE_IN;
+	base->fade = 1.0f;
 
 	base->logo_tex = xTexLoadTGA("./data/logo.tga", 0, 0);
 
@@ -47,9 +56,28 @@ bg3_base* bg3_create_base()
 	xIniGetVectorf(file, "hit_ellipsoid_radii", &base->hit_ellipsoid_radii.x, &base->hit_ellipsoid_radii.y, &base->hit_ellipsoid_radii.z);
 	fclose(file);
 
+	char buffer[256];
 	file = fopen("./config.ini", "r");
+	xIniGetString(file, "inverted", buffer, NULL);
+	if (strcmp(buffer, "true") == 0)
+	{
+		base->inverted = 1;
+	}
+	else //if (strcmp(buffer, "false") == 0)
+	{
+		base->inverted = 0;
+	}
 	base->inverted = xIniGetInt(file, "inverted", 1);
-	base->deadzone = xIniGetFloat(file, "deadzone", 0.1f);
+	base->deadzone = xIniGetFloat(file, "deadzone", 0.2f);
+	xIniGetString(file, "style", buffer, NULL);
+	if (strcmp(buffer, "ANALOG_LOOK") == 0)
+	{
+		base->control_style = 0;
+	}
+	else //if (strcmp(buffer, "ANALOG_MOVE") == 0)
+	{
+		base->control_style = 1;
+	}
 	fclose(file);
 
 	return base;
@@ -185,7 +213,7 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.dirt_ps->prim = X_PARTICLE_SPRITES;
 	}
 
-	base->effects.missile_ps = xParticleSystemConstruct(256);
+	base->effects.missile_ps = xParticleSystemConstruct(1024);
 	if (base->effects.missile_ps)
 	{
 		xVec3Set(&base->effects.missile_ps->pos_rand, 0.0f, 0.0f, 0.0f);
@@ -417,7 +445,8 @@ void bg3_base_init_effects(bg3_base* base)
 		num = 16;
 		break;
 	}
-	base->effects.wind_ps = xParticleSystemConstruct(6*num);
+#define WIND_LIFE 5.0f
+	base->effects.wind_ps = xParticleSystemConstruct(16*num);
 	if (base->effects.wind_ps)
 	{
 		//xVec3Set(&base->effects.wind_ps->pos, 0.5f*map->hmp.tile_scale*(map->hmp.width-1), 0.5f*map->hmp.tile_scale*(map->hmp.width-1), 0.5f*map->hmp.z_scale);
@@ -430,12 +459,12 @@ void bg3_base_init_effects(bg3_base* base)
 		xCol4Set(&base->effects.wind_ps->colors[1], 0xd7/255.0f, 0xc9/255.0f, 0x7e/255.0f, 0.2f);
 		xCol4Set(&base->effects.wind_ps->colors[2], 0xd7/255.0f, 0xc9/255.0f, 0x7e/255.0f, 0.0f);
 		base->effects.wind_ps->num_cols = 3;
-		base->effects.wind_ps->sizes[0] = 60.0f;
+		base->effects.wind_ps->sizes[0] = 50.0f;
 		base->effects.wind_ps->num_sizes = 1;
-		base->effects.wind_ps->size_rand = 10.0f;
-		base->effects.wind_ps->life = 6.0f;
+		base->effects.wind_ps->size_rand = 25.0f;
+		base->effects.wind_ps->life = WIND_LIFE;
 		base->effects.wind_ps->life_rand = 5.0f;
-		base->effects.wind_ps->rate = num;
+		base->effects.wind_ps->rate = 16*num/WIND_LIFE;
 		base->effects.wind_ps->prim = X_PARTICLE_SPRITES;
 	}
 
@@ -571,12 +600,14 @@ void bg3_base_free_effects(bg3_base* base)
 	base->effects.loaded = 0;
 }
 
-void bg3_base_load_game(bg3_base* base, int map_id)
+void bg3_base_load_game(bg3_base* base, int map_id, bg3_game_values* values)
 {
 	//initalize players and objects...
-	if (base == NULL) return;
+	if (base == NULL || values == NULL) return;
 	if (base->game.loaded) return;
 	bg3_game* g = &base->game;
+
+	g->values = *values;
 
 	g->map = bg3_load_map(map_id);
 	if (g->map == NULL) return;
@@ -596,8 +627,8 @@ void bg3_base_load_game(bg3_base* base, int map_id)
 	switch (g->map->fog)
 	{
 	case FOG_NONE:
-		g->fog_near = 1000.0f;
-		g->fog_far = 1000.0f;
+		g->fog_near = 5000.0f;
+		g->fog_far = 10000.0f;
 		break;
 	case FOG_MEDIUM:
 		g->fog_near = 50.0f;
@@ -608,21 +639,41 @@ void bg3_base_load_game(bg3_base* base, int map_id)
 		g->fog_far = 50.0f;
 		break;
 	}
+	g->num_players = g->map->players;
 
-	g->players = (bg3_player*)x_malloc(g->map->players*sizeof(bg3_player));
-	if (g->players == NULL)
+	g->scores = (bg3_score*)x_malloc(g->num_players*sizeof(bg3_score));
+	if (g->scores == NULL)
 	{
 		bg3_free_map(g->map);
 		g->num_players = 0;
 		return;
 	}
-	g->num_players = g->map->players;
 	int i;
-	for (i = 0; i < g->map->players; i++)
+	for (i = 0; i < g->num_players; i++)
+	{
+		g->scores[i].kills = 0;
+		g->scores[i].deaths = 0;
+		g->scores[i].assists = 0;
+		g->scores[i].suicides = 0;
+		g->scores[i].objectives_achieved = 0;
+		g->scores[i].shots_fired = 0.0f;
+		g->scores[i].shots_hit = 0.0f;
+	}
+
+	g->players = (bg3_player*)x_malloc(g->num_players*sizeof(bg3_player));
+	if (g->players == NULL)
+	{
+		x_free(g->scores);
+		bg3_free_map(g->map);
+		g->num_players = 0;
+		return;
+	}
+
+	for (i = 0; i < g->num_players; i++)
 	{
 		g->players[i].team = 0;
-		g->players[i].score = 0;
 		g->players[i].ai.path = astar_create_path(1024);
+		g->players[i].damaged_by = (int*)x_malloc(g->num_players*sizeof(int));
 	}
 
 	g->tshells = bg3_create_tshells(64);
@@ -642,11 +693,9 @@ void bg3_base_load_game(bg3_base* base, int map_id)
 	g->player = 0;
 	g->ai_update_time = 0.0f;
 	g->paused = 0;
-	g->exit = 0;
 
-	g->spawn_ammo_laser = 0;
-	g->spawn_ammo_tshells = 0;
-	g->spawn_ammo_missiles = 0;
+	g->time_elapsed = 0.0f;
+	g->game_over = 0;
 
 	g->loaded = 1;
 }
@@ -663,6 +712,7 @@ void bg3_base_free_game(bg3_base* base)
 		if (g->players[i].ai.path)
 		{
 			astar_free_path(g->players[i].ai.path);
+			x_free(g->players[i].damaged_by);
 		}
 	}
 	x_free(g->players);
@@ -679,6 +729,47 @@ void bg3_base_free_game(bg3_base* base)
 	g->powerups = NULL;
 
 	g->loaded = 0;
+}
+
+#define STATS_MAGIC (0x1337 + 1)
+#define STATS_FILE "./stats.dat"
+
+void bg3_load_stats(bg3_stats* stats)
+{
+	if (stats == NULL) return;
+	memset(stats, 0, sizeof(bg3_stats));
+	FILE* file = fopen(STATS_FILE, "rb");
+	if (file == NULL) return;
+	int magic;
+	fread(&magic, sizeof(int), 1, file);
+	if (magic != STATS_MAGIC)
+	{
+		fclose(file);
+		return;
+	}
+	fread(stats, sizeof(bg3_stats), 1, file);
+	fclose(file);
+}
+
+void bg3_save_stats(bg3_score* score)
+{
+	if (score == NULL) return;
+	bg3_stats temp;
+	bg3_load_stats(&temp);
+	temp.games_played += 1;
+	temp.score_history.kills += score->kills;
+	temp.score_history.deaths += score->deaths;
+	temp.score_history.assists += score->assists;
+	temp.score_history.suicides += score->suicides;
+	temp.score_history.shots_fired += score->shots_fired;
+	temp.score_history.shots_hit += score->shots_hit;
+	temp.score_history.objectives_achieved += score->objectives_achieved;
+	FILE* file = fopen(STATS_FILE, "wb");
+	if (file == NULL) return;
+	int magic = STATS_MAGIC;
+	fwrite(&magic, sizeof(int), 1, file);
+	fwrite(&temp, sizeof(bg3_stats), 1, file);
+	fclose(file);
 }
 
 static void calc_new_player_matrices(bg3_base* base, int player)
@@ -711,6 +802,15 @@ void bg3_spawn_player(bg3_base* base, int player)
 	if (base->game.players == NULL || player < 0 || player >= base->game.num_players) return;
 
 	bg3_player* players = base->game.players;
+
+	if (players[player].damaged_by != NULL)
+	{
+		int i;
+		for (i = 0; i < base->game.num_players; i++)
+		{
+			players[player].damaged_by[i] = 0;
+		}
+	}
 
 	ScePspFVector2 pos;
 	bg3_map_random_spawn(base->game.map, &pos);
@@ -750,9 +850,9 @@ void bg3_spawn_player(bg3_base* base, int player)
 
 	players[player].firing = 0;
 
-	players[player].laser_ammo = base->game.spawn_ammo_laser;
-	players[player].tshell_ammo = base->game.spawn_ammo_tshells;
-	players[player].missile_ammo = base->game.spawn_ammo_missiles;
+	players[player].laser_ammo = base->game.values.spawn_ammo_laser;
+	players[player].tshell_ammo = base->game.values.spawn_ammo_tshells;
+	players[player].missile_ammo = base->game.values.spawn_ammo_missiles;
 
 	players[player].mgun_wait = 0.0f;
 	players[player].tshell_wait = 0.0f;
@@ -774,15 +874,15 @@ void bg3_spawn_player(bg3_base* base, int player)
 	calc_new_player_matrices(base, player);
 }
 
-int bg3_damage_player(bg3_base* base, int player, float shields_dmg, float armor_dmg)
+void bg3_damage_player(bg3_base* base, int source, int target, float shields_dmg, float armor_dmg)
 {
-	if (base == NULL) return 0;
+	if (base == NULL) return;
 	bg3_game* g = &base->game;
-	if (g->players == NULL || player < 0 || player >= g->num_players) return 0;
-	bg3_player* p = &g->players[player];
-	if (p->hp_armor <= 0.0f) return 0;
+	if (g->players == NULL || target < 0 || target >= g->num_players) return;
+	bg3_player* p = &g->players[target];
+	if (p->hp_armor <= 0.0f) return;
 
-	int killed = 0;
+	p->damaged_by[source] = 1;
 
 	if (p->hp_shields > 0.0f)
 	{
@@ -792,7 +892,7 @@ int bg3_damage_player(bg3_base* base, int player, float shields_dmg, float armor
 		{
 			float dmg_not_done = -p->hp_shields;
 			p->hp_shields = 0.0f;
-			bg3_damage_player(base, player, 0.0f, (dmg_not_done/shields_dmg)*armor_dmg);
+			bg3_damage_player(base, source, target, 0.0f, (dmg_not_done/shields_dmg)*armor_dmg);
 		}
 		p->shield_fade = SHIELD_FADE_TIME;
 	}
@@ -806,8 +906,35 @@ int bg3_damage_player(bg3_base* base, int player, float shields_dmg, float armor
 		p->hp_armor -= armor_dmg;
 		if (p->hp_armor <= 0.0f)
 		{
-			//kill player
-			killed = 1;
+			g->scores[target].deaths += 1;
+			//kill target
+			int i;
+			for (i = 0; i < g->num_players; i++)
+			{
+				if (p->damaged_by[i])
+				{
+					if (i == source)
+					{
+						if (source == target)
+						{
+							//suicide
+							g->scores[i].suicides += 1;
+						}
+						else
+						{
+							//kill
+							g->scores[i].kills += 1;
+						}
+
+					}
+					else if (i != target)
+					{
+						//assist, disregarded if its the same person
+						g->scores[i].assists += 1;
+					}
+				}
+			}
+
 			p->death_time = 0.0f;
 			bg3_create_explosion(base, &p->e_pos);
 			//create powerups
@@ -845,19 +972,18 @@ int bg3_damage_player(bg3_base* base, int player, float shields_dmg, float armor
 
 	if (p->ai.state < BG3_AI_NEUTRAL_STATES && p->ai.state != BG3_AI_NEUTRAL_SEEK_ACTIVE && p->ai.state != BG3_AI_NEUTRAL_SCAN)
 	{
-		bg3_ai_set_state(base, player, BG3_AI_NEUTRAL_SCAN);
+		bg3_ai_set_state(base, target, BG3_AI_NEUTRAL_SCAN);
 	}
-	return killed;
 }
 
-int bg3_damage_area(bg3_base* base, int player, ScePspFVector3* center, float inner_radius, float outer_radius, float shields_dmg, float armor_dmg)
+int bg3_damage_area(bg3_base* base, int source, ScePspFVector3* center, float inner_radius, float outer_radius, float shields_dmg, float armor_dmg)
 {
 	if (base == NULL || center == NULL) return 0;
 	bg3_game* g = &base->game;
-	if (g->players == NULL || player < 0 || player >= g->num_players) return 0;
+	if (g->players == NULL || source < 0 || source >= g->num_players) return 0;
 	xVector3f dir;
 	float dist_sq, dist;
-	int killed = 0;
+	int damaged = 0;
 	int i;
 	for (i = 0; i < g->num_players; i++)
 	{
@@ -865,16 +991,18 @@ int bg3_damage_area(bg3_base* base, int player, ScePspFVector3* center, float in
 		dist_sq = xVec3SqLength(&dir);
 		if (dist_sq < SQR(inner_radius))
 		{
-			killed += bg3_damage_player(base, i, shields_dmg, armor_dmg);
+			bg3_damage_player(base, source, i, shields_dmg, armor_dmg);
+			damaged += 1;
 		}
 		else if (dist_sq < SQR(outer_radius))
 		{
 			dist = x_sqrtf(dist_sq);
 			float dmg = (outer_radius - dist)/(outer_radius - inner_radius);
-			killed += bg3_damage_player(base, i, dmg*shields_dmg, dmg*armor_dmg);
+			bg3_damage_player(base, source, i, dmg*shields_dmg, dmg*armor_dmg);
+			damaged += 1;
 		}
 	}
-	return killed;
+	return damaged;
 }
 
 void bg3_create_explosion(bg3_base* base, xVector3f* pos)
@@ -1115,7 +1243,8 @@ void bg3_update_bullets(bg3_bullets* b, bg3_base* base, float dt)
 						xVec3Scale(&dir, (xVector3f*)&s->vel, t);
 						xVec3Add(&p, (xVector3f*)&s->pos, &dir);
 						//cause damage to enemy
-						players[s->player].score += bg3_damage_player(base, j, MGUN_SHIELD_DPS*MGUN_WAIT, MGUN_ARMOR_DPS*MGUN_WAIT);
+						bg3_damage_player(base, s->player, j, MGUN_SHIELD_DPS*MGUN_WAIT, MGUN_ARMOR_DPS*MGUN_WAIT);
+						g->scores[s->player].shots_hit += 1.0f;
 						remove_bullet(b, i);
 						i -= 1;
 						break;
@@ -1323,7 +1452,10 @@ void bg3_update_missiles(bg3_missiles* m, bg3_base* base, float dt)
 						xVec3Add(&p, (xVector3f*)&s->pos, &dir);
 						//bg3_create_ripple(j, (ScePspFVector3*)&p);
 						//bg3_damage_player(j, MISSILE_SHIELD_DPS*MISSILE_WAIT, MISSILE_ARMOR_DPS*MISSILE_WAIT);
-						players[s->player].score += bg3_damage_area(base, s->player, (ScePspFVector3*)&p, MISSILE_DMG_INNER_RADIUS, MISSILE_DMG_OUTER_RADIUS, 0.5f*MISSILE_SHIELD_DPS*MISSILE_WAIT, 0.5f*MISSILE_ARMOR_DPS*MISSILE_WAIT);
+						if (bg3_damage_area(base, s->player, (ScePspFVector3*)&p, MISSILE_DMG_INNER_RADIUS, MISSILE_DMG_OUTER_RADIUS, 0.5f*MISSILE_SHIELD_DPS*MISSILE_WAIT, 0.5f*MISSILE_ARMOR_DPS*MISSILE_WAIT) > 0)
+						{
+							g->scores[s->player].shots_hit += 1.0f;
+						}
 						bg3_create_explosion(base, &p);
 						xSoundSetState(s->snd_ref, X_SOUND_STOP);
 						remove_missile(m, i);
@@ -1340,7 +1472,10 @@ void bg3_update_missiles(bg3_missiles* m, bg3_base* base, float dt)
 				if (t < MISSILE_VELOCITY*dt)
 				{
 					//create particles, decals
-					players[s->player].score += bg3_damage_area(base, s->player, &new_pos, MISSILE_DMG_INNER_RADIUS, MISSILE_DMG_OUTER_RADIUS, 0.5f*MISSILE_SHIELD_DPS*MISSILE_WAIT, 0.5f*MISSILE_ARMOR_DPS*MISSILE_WAIT);
+					if (bg3_damage_area(base, s->player, &new_pos, MISSILE_DMG_INNER_RADIUS, MISSILE_DMG_OUTER_RADIUS, 0.5f*MISSILE_SHIELD_DPS*MISSILE_WAIT, 0.5f*MISSILE_ARMOR_DPS*MISSILE_WAIT) > 0)
+					{
+						g->scores[s->player].shots_hit += 1.0f;
+					}
 					bg3_create_explosion(base, (xVector3f*)&new_pos);
 					//create scorchmark decal
 					bg3_add_decal(d, h, &new_pos);

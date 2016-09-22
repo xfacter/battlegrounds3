@@ -48,8 +48,15 @@ int xMain()
 	xSoundInit(32);
 	xSound3dSpeedOfSound(100.0f);
 
+	xTexture* font_tex = xTexLoadTGA("./data/font.tga", 0, X_TEX_TOP_IN_VRAM|X_TEX_GRAY_TO_ALPHA);
+	xBitmapFont* font = xTextLoadFont(font_tex, "./data/width.fw");
+	xTextSetFont(font);
+	xTextSetColor(0xffffffff);
+	xTextSetScale(1.0f);
+	xTextSetAlign(X_ALIGN_LEFT);
+
 #ifndef X_DEBUG
-	xTexture* logo = xTexLoadTGA("./data/dashhacks.tga", 0, 0);
+	//xTexture* logo = xTexLoadTGA("./data/dashhacks.tga", 0, 0);
 
 	int stage = 1;
 	float fade = 1.0f;
@@ -89,7 +96,10 @@ int xMain()
 		}
 		sceGuDisable(GU_LIGHTING);
 		sceGuDisable(GU_BLEND);
-		bg3_draw_tex(logo, 0, 0);
+		//bg3_draw_tex(logo, 0, 0);
+		bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_RGBA(0,0,0,0));
+		xTextSetAlign(X_ALIGN_CENTER);
+		xTextPrintf(X_SCREEN_WIDTH/2, X_SCREEN_HEIGHT/2, "Battlegrounds 3");
 		sceGuEnable(GU_BLEND);
 		sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
 		bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_COLOR(0.0f, 0.0f, 0.0f, fade));
@@ -97,15 +107,8 @@ int xMain()
 	}
 	xGuDisable(X_WAIT_VBLANK);
 
-	xTexFree(logo);
+	//xTexFree(logo);
 #endif
-
-	xTexture* font_tex = xTexLoadTGA("./data/font.tga", 0, X_TEX_TOP_IN_VRAM|X_TEX_GRAY_TO_ALPHA);
-	xBitmapFont* font = xTextLoadFont(font_tex, "./data/width.fw");
-	xTextSetFont(font);
-	xTextSetColor(0xffffffff);
-	xTextSetScale(1.0f);
-	xTextSetAlign(X_ALIGN_LEFT);
 
 	bg3_base* base = bg3_create_base();
 	if (base == NULL) return 1;
@@ -117,39 +120,20 @@ int xMain()
 	if (!base->game.loaded) return 1;
 	*/
 
-#if 0
-	xWavInit(16);
-	xWav* bullet_wav = xWavLoad("./data/bullet.wav");
-	xWav3dSetConstant(100.0f);
-	xWav* sound = xWavLoad("./data/sound.wav");
-	xWav3dListener listener;
-	xVec3Set(&listener.right, 1.0f, 0.0f, 0.0f);
-	xVec3Set(&listener.pos, players[base->player].pos.x, players[base->player].pos.y, players[base->player].pos.z);
-	xVec3Set(&listener.vel, 0.0f, 0.0f, 0.0f);
-	xWav3dEmitter emitter;
-	xVec3Set(&emitter.pos, 30.0f, 15.0f, 10.0f);
-	xVec3Set(&emitter.vel, 0.0f, 0.0f, 0.0f);
-	emitter.radius = 30.0f;
-	int slot = xWav3dPlay(sound, &listener, &emitter);
-	xWavSetLoop(slot, X_WAV_LOOP);
-	xWavSetPanMode(slot, X_WAV_COMBINED);
-#endif
-
 	//void* memry = x_malloc(20*1024*1024);
 
     while(xRunning())
-    {
+	{
 		switch (base->state)
 		{
-		case BG3_MENU:
+		case BG3_STATE_MENU:
 			bg3_menu_loop(base);
 			break;
-		case BG3_EXIT:
-			xExit();
-			break;
-		case BG3_GAME_DM:
-		default:
+		case BG3_STATE_GAME:
 			bg3_game_loop(base);
+			break;
+		default:
+			xExit();
 			break;
 		}
     }

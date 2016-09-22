@@ -15,7 +15,7 @@ LIBDIR =
 LIBS = -lpspgum_vfpu -lpspvfpu -lpspgu -lpspaudiolib -lpspaudio -lpsprtc -lm
 LDFLAGS =
 
-OBJS = main.o xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xsound.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o bg3_util.o map.o astar.o base.o game.o menu.o
+OBJS = main.o xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xsound.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o values.o bg3_util.o map.o astar.o base.o game.o menu.o
 
 PSPSDK=$(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
@@ -52,18 +52,20 @@ xlib/xparticle.o: xlib/xparticle.c xlib/xparticle.h
 
 xlib/xbuffer.o: xlib/xbuffer.c xlib/xbuffer.h
 
+values.o: values.c values.h
+
 bg3_util.o: bg3_util.c bg3_util.h
 
 map.o: map.c map.h
 
 astar.o: astar.c astar.h
 
-base.o: base.c base.h map.o
+base.o: base.c base.h map.o values.o bg3_util.o
 
-game.o: game.c game.h base.o
+game.o: game.c game.h base.o values.o bg3_util.o
 
-menu.o: menu.c menu.h base.o
+menu.o: menu.c menu.h base.o values.o bg3_util.o
 
-main.o: main.c xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xsound.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o bg3_util.o map.o astar.o base.o game.o menu.o
+main.o: main.c xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xsound.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o values.o bg3_util.o map.o astar.o base.o game.o menu.o
 
 EBOOT.PBP: main.o

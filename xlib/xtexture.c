@@ -369,7 +369,7 @@ static int tex_load_tga(xTexture* t, char* filename, int levels, int flags)
     
     fseek(file, header.idlength, SEEK_CUR);
 
-	X_LOG("Loading TGA: %s, idlength: %u, colormaptype: %u, datatype: %u, colormapstart: %u, colormaplength: %u, colormapdepth: %u\r\n \
+	X_LOG("TGA: %s, idlength: %u, colormaptype: %u, datatype: %u, colormapstart: %u, colormaplength: %u, colormapdepth: %u \
 		  x_origin: %u, y_origin: %u, width: %u, height: %u, bitsperpixel: %u, descriptor: %u",
 		  filename, header.idlength, header.colormaptype, header.datatype, header.colormapstart, header.colormaplength, header.colormapdepth,
 		  header.x_origin, header.y_origin, header.width, header.height, header.bitsperpixel, header.descriptor);
@@ -546,7 +546,6 @@ static int tex_load_tga(xTexture* t, char* filename, int levels, int flags)
     else
     {
         //Unsupported type
-        X_LOG("Attempting to load unsupported type.", 0);
     }
     fclose(file);
     sceKernelDcacheWritebackAll();
@@ -744,6 +743,8 @@ static int tex_load_bmp(xTexture* t, char* filename, int levels, int flags)
 
 xTexture* xTexLoadTex(char* filename, int levels, int flags)
 {
+	if (filename == NULL) return NULL;
+	X_LOG("Attempting to load texture \"%s\"...", filename);
     char* ptr = strrchr(filename, '.');
     if (!ptr)
         return 0;
@@ -759,6 +760,8 @@ xTexture* xTexLoadTex(char* filename, int levels, int flags)
 
 xTexture* xTexLoadTGA(char* filename, int levels, int flags)
 {
+	if (filename == NULL) return NULL;
+	X_LOG("Attempting to load TGA texture \"%s\"...", filename);
     xTexture* t = tex_initialize();
     if (!t)
         return 0;
@@ -769,11 +772,14 @@ xTexture* xTexLoadTGA(char* filename, int levels, int flags)
     }
     //generate mipmaps, swizzle, put in vram
     tex_finish(t, levels, flags);
+	X_LOG("Successfully loaded TGA texture.");
     return t;
 }
 
 xTexture* xTexLoadPNG(char* filename, int levels, int flags)
 {
+	if (filename == NULL) return NULL;
+	X_LOG("Attempting to load PNG texture \"%s\"...", filename);
     xTexture* t = tex_initialize();
     if (!t)
         return 0;
@@ -782,12 +788,15 @@ xTexture* xTexLoadPNG(char* filename, int levels, int flags)
         xTexFree(t);
         return 0;
     }
-    tex_finish(t, levels, flags);
+	tex_finish(t, levels, flags);
+	X_LOG("Successfully loaded PNG texture.");
     return t;
 }
 
 xTexture* xTexLoadBMP(char* filename, int levels, int flags)
 {
+	if (filename == NULL) return NULL;
+	X_LOG("Attempting to load BMP texture \"%s\"...", filename);
     xTexture* t = tex_initialize();
     if (!t)
         return 0;
@@ -796,7 +805,8 @@ xTexture* xTexLoadBMP(char* filename, int levels, int flags)
         xTexFree(t);
         return 0;
     }
-    tex_finish(t, levels, flags);
+	tex_finish(t, levels, flags);
+	X_LOG("Successfully loaded BMP texture.");
     return t;
 }
 

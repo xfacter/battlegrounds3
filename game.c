@@ -65,6 +65,206 @@
 #define DUST_HEIGHT 2.0f
 #define GAME_FADE_TIME 1.0f
 
+typedef struct bg3_menu {
+	int screen;
+	int selection;
+} bg3_menu;
+
+int inverted;
+float deadzone;
+int control_style;
+
+void game_save_settings(bg3_base* base)
+{
+	base->inverted = inverted;
+	base->deadzone = deadzone;
+	base->control_style = control_style;
+
+	FILE* file = fopen("./config.ini", "w");
+	if (file == NULL) return;
+	fprintf(file, "[config]\r\ninverted = %s\r\ndeadzone = %.2f\r\nstyle = %s", (inverted == 0 ? "false" : "true"), deadzone, (control_style == 0 ? "ANALOG_LOOK" : "ANALOG_MOVE"));
+	fclose(file);
+}
+
+/* menu
+	- resume
+	- options
+		inverted: yes/no
+		deadzone: 0.0 - 1.0
+		controls: analog look / analog move
+		Apply
+	- quit
+		sure? yes/no
+*/
+
+enum menu_states {
+	MENU_MAIN,
+	MENU_OPTIONS,
+	MENU_EXIT
+};
+
+void bg3_game_menu_input(bg3_base* base, bg3_menu* menu)
+{
+	bg3_game* g = &base->game;
+	if (xCtrlTap(PSP_CTRL_START))
+	{
+		goto unpause;
+	}
+	switch (menu->screen)
+	{
+	case MENU_MAIN:
+		if (xCtrlTap(PSP_CTRL_CIRCLE))
+		{
+			goto unpause;
+		}
+		if (xCtrlTap(PSP_CTRL_UP))
+		{
+			if (menu->selection > 0)
+			{
+				menu->selection -= 1;
+			}
+		}
+		if (xCtrlTap(PSP_CTRL_DOWN))
+		{
+			if (menu->selection < 2)
+			{
+				menu->selection += 1;
+			}
+		}
+		switch (menu->selection)
+		{
+		case 0:
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				goto unpause;
+			}
+			break;
+		case 1:
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				menu->screen = MENU_OPTIONS;
+				menu->selection = 0;
+				inverted = base->inverted;
+				deadzone = base->deadzone;
+				control_style = base->control_style;
+			}
+			break;
+		case 2:
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				menu->screen = MENU_EXIT;
+				menu->selection = 0;
+			}
+			break;
+		}
+		break;
+	case MENU_OPTIONS:
+		if (xCtrlTap(PSP_CTRL_CIRCLE))
+		{
+			menu->screen = MENU_MAIN;
+			menu->selection = 1;
+		}
+		if (xCtrlTap(PSP_CTRL_UP))
+		{
+			if (menu->selection > 0)
+			{
+				menu->selection -= 1;
+			}
+		}
+		if (xCtrlTap(PSP_CTRL_DOWN))
+		{
+			if (menu->selection < 3)
+			{
+				menu->selection += 1;
+			}
+		}
+		switch (menu->selection)
+		{
+		case 0:
+			//inverted
+			if (xCtrlTap(PSP_CTRL_LEFT) || xCtrlTap(PSP_CTRL_RIGHT))
+			{
+				inverted = !inverted;
+			}
+			break;
+		case 1:
+			//deadzone
+			if (xCtrlTap(PSP_CTRL_LEFT))
+			{
+				if (deadzone > 0.0f)
+				{
+					deadzone -= 0.05f;
+					if (deadzone < 0.0f)
+					{
+						deadzone = 0.0f;
+					}
+				}
+			}
+			if (xCtrlTap(PSP_CTRL_RIGHT))
+			{
+				if (deadzone < 1.0f)
+				{
+					deadzone += 0.05f;
+					if (deadzone > 1.0f)
+					{
+						deadzone = 1.0f;
+					}
+				}
+			}
+			break;
+		case 2:
+			//style
+			if (xCtrlTap(PSP_CTRL_LEFT) || xCtrlTap(PSP_CTRL_RIGHT))
+			{
+				control_style = !control_style;
+			}
+			break;
+		case 3:
+			//apply
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				game_save_settings(base);
+				menu->screen = MENU_MAIN;
+				menu->selection = 0;
+			}
+			break;
+		}
+		break;
+	case MENU_EXIT:
+		if (xCtrlTap(PSP_CTRL_CIRCLE))
+		{
+			menu->screen = MENU_MAIN;
+			menu->selection = 2;
+		}
+		if (xCtrlTap(PSP_CTRL_LEFT) || xCtrlTap(PSP_CTRL_RIGHT))
+		{
+			menu->selection = !menu->selection;
+		}
+		switch (menu->selection)
+		{
+		case 0:
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				menu->screen = MENU_MAIN;
+				menu->selection = 2;
+			}
+			break;
+		case 1:
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				base->transition = BG3_FADE_OUT;
+				base->fade = 0.0f;
+			}
+			break;
+		}
+		break;
+	}
+	return;
+unpause:
+	g->paused = 0;
+	xSoundSetStateAll(X_SOUND_PLAY, 0);
+}
+
 float dust_time = 0.0f;
 float lod_time = LOD_DELAY;
 
@@ -85,23 +285,84 @@ void bg3_game_reset_players_frame(bg3_base* base)
 
 void bg3_ai_find_path(bg3_base* base, int player, int x, int y, int active);
 
-void bg3_game_process_player_input(bg3_base* base, float dt)
+void bg3_game_player_input(bg3_base* base, bg3_menu* menu, float dt)
 {
 	if (base == NULL) return;
 	bg3_game* g = &base->game;
-	bg3_map* map = g->map;
 	bg3_player* p = &g->players[g->player];
-	if (!g->paused)
+	if (g->game_over)
+	{
+		if (base->transition != BG3_FADE_OUT)
+		{
+			if (xCtrlTap(PSP_CTRL_CROSS))
+			{
+				base->transition = BG3_FADE_OUT;
+				base->fade = 0.0f;
+			}
+		}
+
+	}
+	else
 	{
 		if (p->hp_armor > 0.0f)
 		{
-			if (xCtrlAnalogAlive(base->deadzone))
+			if (base->control_style == 0)
 			{
-				x_rotatez(&p->cam_dir, -TANK_TURN_X*xCtrlAnalogX()*dt);
-				//p->cam_dir.z += 5.0f*xCtrlAnalogY()*dt;
-				p->cam_pitch += (base->inverted ? -1 : 1) * TANK_TURN_Y * -xCtrlAnalogY() * dt;
+				if (xCtrlAnalogAlive(base->deadzone))
+				{
+					x_rotatez(&p->cam_dir, -TANK_TURN_X*xCtrlAnalogX()*dt);
+					//p->cam_dir.z += 5.0f*xCtrlAnalogY()*dt;
+					p->cam_pitch += (base->inverted ? -1 : 1) * TANK_TURN_Y * -xCtrlAnalogY() * dt;
+				}
+				if (xCtrlPress(PSP_CTRL_TRIANGLE)) //fwd
+				{
+					p->acc.x += FORCE_CONST*p->tank_dir.x;
+					p->acc.y += FORCE_CONST*p->tank_dir.y;
+				}
+				if (xCtrlPress(PSP_CTRL_CROSS)) //back
+				{
+					p->acc.x -= FORCE_CONST*p->tank_dir.x;
+					p->acc.y -= FORCE_CONST*p->tank_dir.y;
+				}
+				if (xCtrlPress(PSP_CTRL_CIRCLE)) //right
+				{
+					p->acc.x += FORCE_CONST*p->tank_dir.y;
+					p->acc.y += FORCE_CONST*-p->tank_dir.x;
+				}
+				if (xCtrlPress(PSP_CTRL_SQUARE)) //left
+				{
+					p->acc.x -= FORCE_CONST*p->tank_dir.y;
+					p->acc.y -= FORCE_CONST*-p->tank_dir.x;
+				}
 			}
-			if (xCtrlTap(PSP_CTRL_RIGHT))
+			else
+			{
+				if (xCtrlAnalogAlive(base->deadzone))
+				{
+					p->acc.x += xCtrlAnalogX()*FORCE_CONST*p->tank_dir.y;
+					p->acc.y += xCtrlAnalogX()*FORCE_CONST*-p->tank_dir.x;
+
+					p->acc.x += xCtrlAnalogY()*FORCE_CONST*p->tank_dir.x;
+					p->acc.y += xCtrlAnalogY()*FORCE_CONST*p->tank_dir.y;
+				}
+				if (xCtrlPress(PSP_CTRL_TRIANGLE)) //fwd
+				{
+					p->cam_pitch += (base->inverted ? -1 : 1) * -TANK_TURN_Y * dt;
+				}
+				if (xCtrlPress(PSP_CTRL_CROSS)) //back
+				{
+					p->cam_pitch += (base->inverted ? -1 : 1) * TANK_TURN_Y * dt;
+				}
+				if (xCtrlPress(PSP_CTRL_CIRCLE)) //right
+				{
+					x_rotatez(&p->cam_dir, -TANK_TURN_X*dt);
+				}
+				if (xCtrlPress(PSP_CTRL_SQUARE)) //left
+				{
+					x_rotatez(&p->cam_dir, TANK_TURN_X*dt);
+				}
+			}
+			if (xCtrlTap(PSP_CTRL_RIGHT) || xCtrlTap(PSP_CTRL_LTRIGGER))
 			{
 				do {
 					p->primary += 1;
@@ -119,26 +380,6 @@ void bg3_game_process_player_input(bg3_base* base, float dt)
 
 				} while (!(p->weapons & (1<<p->primary)));
 			}
-			if (xCtrlPress(PSP_CTRL_TRIANGLE)) //fwd
-			{
-				p->acc.x += FORCE_CONST*p->tank_dir.x;
-				p->acc.y += FORCE_CONST*p->tank_dir.y;
-			}
-			if (xCtrlPress(PSP_CTRL_CROSS)) //back
-			{
-				p->acc.x -= FORCE_CONST*p->tank_dir.x;
-				p->acc.y -= FORCE_CONST*p->tank_dir.y;
-			}
-			if (xCtrlPress(PSP_CTRL_CIRCLE)) //right
-			{
-				p->acc.x += FORCE_CONST*p->tank_dir.y;
-				p->acc.y += FORCE_CONST*-p->tank_dir.x;
-			}
-			if (xCtrlPress(PSP_CTRL_SQUARE)) //left
-			{
-				p->acc.x -= FORCE_CONST*p->tank_dir.y;
-				p->acc.y -= FORCE_CONST*-p->tank_dir.x;
-			}
 			if (xCtrlPress(PSP_CTRL_RTRIGGER))
 			{
 				p->firing = 1;
@@ -146,35 +387,25 @@ void bg3_game_process_player_input(bg3_base* base, float dt)
 		}
 		if (xCtrlTap(PSP_CTRL_START))
 		{
+			menu->screen = MENU_MAIN;
+			menu->selection = 0;
 			g->paused = 1;
 			xSoundSetStateAll(X_SOUND_PAUSE, 0);
 		}
+	}
+
 #ifdef X_DEBUG
-		if (xCtrlTap(PSP_CTRL_UP))
-		{
-			g->player += 1;
-			if (g->player >= g->num_players) g->player = 0;
-		}
-		if (xCtrlTap(PSP_CTRL_DOWN))
-		{
-			g->player -= 1;
-			if (g->player < 0) g->player = g->num_players-1;
-		}
-#endif
-	}
-	else
+	if (xCtrlTap(PSP_CTRL_UP))
 	{
-		if (xCtrlTap(PSP_CTRL_START))
-		{
-			g->paused = 0;
-			xSoundSetStateAll(X_SOUND_PLAY, 0);
-		}
-		if (xCtrlTap(PSP_CTRL_TRIANGLE))
-		{
-			g->exit = 1;
-			g->fade = 0.0f;
-		}
+		g->player += 1;
+		if (g->player >= g->num_players) g->player = 0;
 	}
+	if (xCtrlTap(PSP_CTRL_DOWN))
+	{
+		g->player -= 1;
+		if (g->player < 0) g->player = g->num_players-1;
+	}
+#endif
 }
 
 /*
@@ -1026,6 +1257,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 						x_rotatez(&rand_dir, x_randf(-RAND_ANGLE, RAND_ANGLE));
 						x_rotatex(&rand_dir, x_randf(-RAND_ANGLE, RAND_ANGLE));
 						bg3_add_bullet(g->bullets, base, i, (ScePspFVector3*)&mat.w, &rand_dir);
+						g->scores[i].shots_fired += 1.0f;
 						xParticleEmitter e;
 						e.particle_pos = *(xVector3f*)&mat.w;
 						e.new_velocity = 0;
@@ -1065,6 +1297,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 						//printf("enemy: %i, t0: %f\n", enemy, t0);
 						if (players[i].laser_ammo > 0.0f)
 						{
+							g->scores[i].shots_fired += dt;
 							if (enemy >= 0)
 							{
 								//hit enemy
@@ -1072,7 +1305,8 @@ void bg3_game_update_players(bg3_base* base, float dt)
 								hit.y = mat.w.y + dir.y;
 								hit.z = mat.w.z + dir.z;
 								//players[enemy].shield_fade = SHIELD_FADE_TIME;
-								players[i].score += bg3_damage_player(base, enemy, LASER_SHIELD_DPS*dt, LASER_ARMOR_DPS*dt);
+								bg3_damage_player(base, i, enemy, LASER_SHIELD_DPS*dt, LASER_ARMOR_DPS*dt);
+								g->scores[i].shots_hit += dt;
 								//players[i].laser_hit_last = 0;
 								xParticleEmitter e;
 								e.particle_pos = *(xVector3f*)&hit;
@@ -1182,7 +1416,11 @@ void bg3_game_update_players(bg3_base* base, float dt)
 							}
 							//add shell, damage enemies
 							bg3_add_tshell(g->tshells, base, (ScePspFVector3*)&mat.w, &hit);
-							players[i].score += bg3_damage_area(base, i, &hit, TSHELL_DMG_INNER_RADIUS, TSHELL_DMG_OUTER_RADIUS, TSHELL_SHIELD_DPS*TSHELL_WAIT, TSHELL_ARMOR_DPS*TSHELL_WAIT);
+							g->scores[i].shots_fired += 1.0f;
+							if (bg3_damage_area(base, i, &hit, TSHELL_DMG_INNER_RADIUS, TSHELL_DMG_OUTER_RADIUS, TSHELL_SHIELD_DPS*TSHELL_WAIT, TSHELL_ARMOR_DPS*TSHELL_WAIT) > 0)
+							{
+								g->scores[i].shots_hit += 1.0f;
+							}
 							bg3_create_explosion(base, (xVector3f*)&hit);
 
 							xParticleEmitter e;
@@ -1221,6 +1459,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 							ScePspFMatrix4 mat = players[i].top_mat;
 							gumTranslate(&mat, &base->missile_offset);
 							bg3_add_missile(g->missiles, base, i, (ScePspFVector3*)&mat.w, &dir, &shootat);
+							g->scores[i].shots_fired += 1.0f;
 							//play sound
 							players[i].missile_ammo -= 1;
 							if (players[i].missile_ammo < 0)
@@ -1231,6 +1470,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 								ScePspFVector3 move = {-2*base->missile_offset.x, 0.0f, 0.0f};
 								gumTranslate(&mat, &move);
 								bg3_add_missile(g->missiles, base, i, (ScePspFVector3*)&mat.w, &dir, &shootat);
+								g->scores[i].shots_fired += 1.0f;
 								//play sound
 								players[i].missile_ammo -= 1;
 								if (players[i].missile_ammo < 0)
@@ -1248,7 +1488,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 		{
 			//player is dead
 			players[i].death_time += dt;
-			if (players[i].death_time >= RESPAWN_WAIT)
+			if (players[i].death_time >= (float)bg3_game_spawns[g->values.spawn_time_id])
 			{
 				//respawn
 				bg3_spawn_player(base, i);
@@ -1265,10 +1505,15 @@ void bg3_game_update_players(bg3_base* base, float dt)
 				players[i].laser_snd_ref = -1;
 			}
 		}
+
+		if (g->scores[i].kills >= bg3_game_scores[g->values.score_target_id])
+		{
+			g->game_over = 1;
+		}
 	}
 }
 
-void bg3_game_update_render(bg3_base* base, float dt)
+void bg3_game_update_render(bg3_base* base, bg3_menu* menu, float dt)
 {
 	if (base == NULL) return;
 	bg3_game* g = &base->game;
@@ -1294,9 +1539,12 @@ void bg3_game_update_render(bg3_base* base, float dt)
 		xParticleSystemUpdate(effects->smoke_ps, dt);
 		xParticleSystemUpdate(effects->lasermark_ps, dt);
 		xParticleSystemUpdate(effects->recharge_ps, dt);
-		effects->wind_ps->pos = *(xVector3f*)&players[g->player].pos;
-		xVec3Sub(&effects->wind_ps->pos, (xVector3f*)&players[g->player].pos, &effects->wind_ps->vel);
 		xParticleSystemUpdate(effects->dust_ps, dt);
+		if (effects->wind_ps != NULL)
+		{
+			effects->wind_ps->pos = *(xVector3f*)&players[g->player].pos;
+			xVec3Sub(&effects->wind_ps->pos, (xVector3f*)&players[g->player].pos, &effects->wind_ps->vel);
+		}
 		xParticleSystemUpdate(effects->wind_ps, dt);
 		xParticleSystemUpdate(effects->laser_ps, dt);
 		xParticleSystemUpdate(effects->muzzleflash_ps, dt);
@@ -1464,6 +1712,7 @@ void bg3_game_update_render(bg3_base* base, float dt)
 					}
 					else
 					{
+#if 0
 						//draw low detail shadowed terrain
 
 						ScePspFMatrix4 shadow_proj;
@@ -1479,6 +1728,90 @@ void bg3_game_update_render(bg3_base* base, float dt)
 	#endif
 							bg3_shadow_pass_end();
 						}
+#endif
+
+#if 1
+						if (bg3_shadow_setrendertarget(effects->shadow, (ScePspFVector3*)&players[i].base_mat.w, &map->light_pos, SHADOW_FOV, SHADOW_DIST, 0.5f, 1) == 0)
+						{
+							//sceGumLoadMatrix(&players[i].base_mat);
+							//xObjDraw(tank_base, 0);
+							sceGumLoadMatrix(&players[i].top_mat);
+							sceGumPushMatrix();
+							xObjTranslate(resources->tank_top);
+							xObjDraw(resources->tank_top, 0);
+							sceGumPopMatrix();
+							xObjTranslate(resources->tank_turret);
+							sceGumRotateX(players[i].turret_pitch);
+							xObjDraw(resources->tank_turret, 0);
+							bg3_shadow_endrendertarget();
+						}
+						sceGumLoadMatrix(&players[i].base_mat);
+						sceGumScale(&resources->tank_base->scale);
+						if (bg3_shadowbuf_pass_start(effects->shadow) == 0)
+						{
+							ScePspFVector3 inv_scale = {1.0f/resources->tank_base->scale.x, 1.0f/resources->tank_base->scale.y, 1.0f/resources->tank_base->scale.z};
+							sceGumScale(&inv_scale);
+							xObjDraw(resources->tank_base, 0);
+							bg3_shadow_pass_end();
+						}
+
+						if (bg3_shadow_setrendertarget(effects->shadow, (ScePspFVector3*)&players[i].base_mat.w, &map->light_pos, SHADOW_FOV, SHADOW_DIST, 0.5f, 0) == 0)
+						{
+							sceGumLoadMatrix(&players[i].base_mat);
+							xObjDraw(resources->tank_base, 0);
+							bg3_shadow_endrendertarget();
+						}
+
+						//draw detailed shadowed terrain
+
+						sceGumLoadIdentity();
+						if (bg3_shadowbuf_pass_start(effects->shadow) == 0)
+						{
+#ifdef DRAW_HEIGHTMAP
+							//xHeightmapDrawSection(&map->hmp, players[i].pos.x - 8*2.0f, players[i].pos.y - 8*2.0f, 16*2.0f, 16*2.0f);
+							//xHeightmapDrawLOD(&map->hmp_lod);
+							xHeightmapDrawPatchID(&map->hmp_lod, xHeightmapGetPatchID(&map->hmp_lod, players[i].pos.x, players[i].pos.y));
+#endif
+							bg3_shadow_pass_end();
+						}
+#else
+#define BUF_WIDTH 32
+						xBuffer buf;
+						buf.data = effects->shadow->buf0->data;
+						buf.width = BUF_WIDTH;
+						buf.height = BUF_WIDTH;
+						buf.buf_width = BUF_WIDTH;
+						buf.pow2_height = BUF_WIDTH;
+						buf.u_scale = 1.0f;
+						buf.v_scale = 1.0f;
+						bg3_shadow shadow;
+						shadow.buf0 = &buf;
+						if (bg3_shadow_setrendertarget(&shadow, (ScePspFVector3*)&players[i].base_mat.w, &map->light_pos, SHADOW_FOV, SHADOW_DIST, 0.5f, 1) == 0)
+						{
+							sceGumLoadMatrix(&players[i].base_mat);
+							xObjDraw(resources->tank_base, 0);
+							sceGumLoadMatrix(&players[i].top_mat);
+							sceGumPushMatrix();
+							xObjTranslate(resources->tank_top);
+							xObjDraw(resources->tank_top, 0);
+							sceGumPopMatrix();
+							xObjTranslate(resources->tank_turret);
+							sceGumRotateX(players[i].turret_pitch);
+							xObjDraw(resources->tank_turret, 0);
+							bg3_shadow_endrendertarget();
+						}
+						sceGumLoadIdentity();
+						if (bg3_shadowbuf_pass_start(&shadow) == 0)
+						{
+#ifdef DRAW_HEIGHTMAP
+							//xHeightmapDrawSection(&map->hmp, players[i].pos.x - 8*2.0f, players[i].pos.y - 8*2.0f, 16*2.0f, 16*2.0f);
+							//xHeightmapDrawLOD(&map->hmp_lod);
+							xHeightmapDrawPatchID(&map->hmp_lod, xHeightmapGetPatchID(&map->hmp_lod, players[i].pos.x, players[i].pos.y));
+#endif
+							bg3_shadow_pass_end();
+						}
+#endif
+
 					}
 				}
 	#endif
@@ -1666,178 +1999,348 @@ void bg3_game_update_render(bg3_base* base, float dt)
 
 
 	sceGuDisable(GU_FOG);
-	sceGuDisable(GU_DITHER);
+
+	sceGuEnable(GU_BLEND);
 
 	if (g->paused)
 	{
-		sceGuEnable(GU_BLEND);
+		//paused
 
-		bg3_set_blend(BLEND_AVERAGE_WITH_ALPHA, 0);
+		sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
+
 		bg3_draw_tex_center(base->logo_tex, X_SCREEN_WIDTH/2, 40);
 
-		xTextSetAlign(X_ALIGN_CENTER);
-		int y = 100;
-		bg3_print_text(X_SCREEN_WIDTH/2, y, "Press Triangle to exit to menu.");
-		y += 15;
-		//bg3_print_text(X_SCREEN_WIDTH/2, y, "Score: %i", players[g->player].score);
-		xTextSetAlign(X_ALIGN_LEFT);
+#define MENU_BOX_WIDTH 250
+#define MENU_BOX_HEIGHT 80
+#define MENU_BOX_Y 100
 
-		if (g->exit)
+		bg3_draw_box(X_SCREEN_WIDTH/2-MENU_BOX_WIDTH/2, MENU_BOX_Y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, 0x7f555555, 0xff000000);
+
+#define MENU_START_X		(X_SCREEN_WIDTH/2-100)
+#define MENU_START_Y		110
+#define MENU_VALUE_X		(X_SCREEN_WIDTH/2+100)
+#define MENU_TEXT_HEIGHT	15
+#define MENU_SELECT_HEIGHT	16
+#define MENU_NO_X			(X_SCREEN_WIDTH/2-40)
+#define MENU_YES_X			(X_SCREEN_WIDTH/2+40)
+#define MENU_YESNO_WIDTH	50
+
+		int y;
+		int width;
+
+		switch (menu->screen)
 		{
-			g->fade += dt/GAME_FADE_TIME;
-			if (g->fade >= 1.0f)
+		case MENU_MAIN:
+			y = MENU_START_Y + menu->selection*MENU_TEXT_HEIGHT;
+			width = 100;
+			bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+
+			xTextSetAlign(X_ALIGN_CENTER);
+			y = MENU_START_Y;
+			bg3_print_text(X_SCREEN_WIDTH/2, y, "Resume");
+			y += MENU_TEXT_HEIGHT;
+			bg3_print_text(X_SCREEN_WIDTH/2, y, "Options");
+			y += MENU_TEXT_HEIGHT;
+			bg3_print_text(X_SCREEN_WIDTH/2, y, "Quit");
+			break;
+		case MENU_OPTIONS:
+			y = MENU_START_Y + menu->selection*MENU_TEXT_HEIGHT;
+			width = MENU_VALUE_X - MENU_START_X + 20;
+			bg3_draw_box(MENU_START_X - 10, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+
+			y = MENU_START_Y;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(MENU_START_X, y, "Look Inversion:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(MENU_VALUE_X, y, "%s", (inverted ? "Yes" : "No"));
+			y += MENU_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(MENU_START_X, y, "Analog Deadzone:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(MENU_VALUE_X, y, "%.2f", deadzone);
+			y += MENU_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(MENU_START_X, y, "Control Style:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(MENU_VALUE_X, y, "%s", (control_style ? "Analog Move" : "Analog Look"));
+			y += MENU_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_CENTER);
+			bg3_print_text(X_SCREEN_WIDTH/2, y, "Apply");
+			break;
+		case MENU_EXIT:
+			xTextSetAlign(X_ALIGN_CENTER);
+			y = MENU_START_Y;
+			bg3_print_text(X_SCREEN_WIDTH/2, y, "Are you sure?");
+			y += MENU_TEXT_HEIGHT;
+			if (menu->selection == 0)
 			{
-				g->fade = 1.0f;
-				base->state = BG3_MENU;
+				bg3_draw_box(MENU_NO_X-MENU_YESNO_WIDTH/2, y, MENU_YESNO_WIDTH, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
 			}
-			bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_COLOR(0.0f, 0.0f, 0.0f, g->fade));
+			else
+			{
+				bg3_draw_box(MENU_YES_X-MENU_YESNO_WIDTH/2, y, MENU_YESNO_WIDTH, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+			}
+			bg3_print_text(MENU_NO_X, y, "No");
+			bg3_print_text(MENU_YES_X, y, "Yes");
+			break;
 		}
 	}
-	else if (players[g->player].hp_armor > 0.0f)
+	else
 	{
+		//unpaused
 
-#define ARMOR_START 37
-#define ARMOR_WIDTH 100
-#define SHIELDS_START 12
-#define SHIELDS_WIDTH 200
-#define HP_DISPLAY_X 2
-#define HP_DISPLAY_Y 2
-
-		sceGuEnable(GU_BLEND);
-		sceGuBlendFunc(GU_ADD, GU_FIX, GU_ONE_MINUS_SRC_COLOR, 0xffffffff, 0);
-		bg3_draw_tex_center(resources->crosshair_tex, X_SCREEN_WIDTH/2, X_SCREEN_HEIGHT/2);
-		sceGuDisable(GU_BLEND);
-
-		sceGuColor(0xffffffff);
-		sceGuEnable(GU_BLEND);
-		sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
-		/*
-		bg3_draw_tex(resources->hp_hud_tex, HP_DISPLAY_X, HP_DISPLAY_Y);
-		xTexDraw(
-			resources->hp_armor_tex, HP_DISPLAY_X, HP_DISPLAY_Y,
-			ARMOR_START + (int)(players[g->player].hp_armor*ARMOR_WIDTH),
-			resources->hp_hud_tex->height,
-			0, 0,
-			ARMOR_START + (int)(players[g->player].hp_armor*ARMOR_WIDTH),
-			resources->hp_hud_tex->height);
-		sceGuBlendFunc(GU_ADD, GU_FIX, GU_SRC_COLOR, 0, 0);
-		xTexDraw(
-			resources->hp_shields_tex, HP_DISPLAY_X, HP_DISPLAY_Y,
-			SHIELDS_START + (int)(players[g->player].hp_shields*SHIELDS_WIDTH),
-			resources->hp_shields_tex->height,
-			0, 0,
-			SHIELDS_START + (int)(players[g->player].hp_shields*SHIELDS_WIDTH),
-			resources->hp_shields_tex->height);
-			*/
-		bg3_draw_rect(HP_DISPLAY_X-1, HP_DISPLAY_Y-1, SHIELDS_WIDTH+1, 10, 0xafdddddd);
-		bg3_draw_outline(HP_DISPLAY_X-1, HP_DISPLAY_Y-1, SHIELDS_WIDTH+1, 10, 0xff000000);
-		bg3_draw_vert_grad(HP_DISPLAY_X, HP_DISPLAY_Y, (int)(players[g->player].hp_shields*SHIELDS_WIDTH), 9, 0xaf957000, 0xafffc000);
-		bg3_draw_rect(HP_DISPLAY_X-1, HP_DISPLAY_Y+12-1, ARMOR_WIDTH+1, 10, 0xafdddddd);
-		bg3_draw_outline(HP_DISPLAY_X-1, HP_DISPLAY_Y+12-1, ARMOR_WIDTH+1, 10, 0xff000000);
-		bg3_draw_vert_grad(HP_DISPLAY_X, HP_DISPLAY_Y+12, (int)(players[g->player].hp_armor*ARMOR_WIDTH), 9, 0xaf0000af, 0xaf0000ef);
-		sceGuDisable(GU_BLEND);
-
-#define ICON_START 350
-#define ICON_WIDTH 32
-#define ICON_FILL 0x7f7f7f7f
-#define ICON_COLOR0 0xffffffff
-#define ICON_COLOR1 0xff303030
-#define ICON_OUTLINE 0xff000000
-#define ICON_PRIMARY 0xff00c6ff
-
-		sceGuEnable(GU_BLEND);
-		sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
-
-		int x = ICON_START;
-		int y = 0;
-		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
-		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
-		if (players[g->player].weapons & (1<<BG3_MACHINE_GUN))
-			sceGuColor(ICON_COLOR0);
-		else
-			sceGuColor(ICON_COLOR1);
-		bg3_draw_tex2(resources->mgun_icon, x, y, ICON_WIDTH, ICON_WIDTH);
-		x += ICON_WIDTH;
-		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
-		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
-		if (players[g->player].weapons & (1<<BG3_LASER))
-			sceGuColor(ICON_COLOR0);
-		else
-			sceGuColor(ICON_COLOR1);
-		bg3_draw_tex2(resources->laser_icon, x, y, ICON_WIDTH, ICON_WIDTH);
-		x += ICON_WIDTH;
-		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
-		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
-		if (players[g->player].weapons & (1<<BG3_TANK_SHELL))
-			sceGuColor(ICON_COLOR0);
-		else
-			sceGuColor(ICON_COLOR1);
-		bg3_draw_tex2(resources->tshell_icon, x, y, ICON_WIDTH, ICON_WIDTH);
-		x += ICON_WIDTH;
-		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
-		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
-		if (players[g->player].weapons & (1<<BG3_MISSILES))
-			sceGuColor(ICON_COLOR0);
-		else
-			sceGuColor(ICON_COLOR1);
-		bg3_draw_tex2(resources->missile_icon, x, y, ICON_WIDTH, ICON_WIDTH);
-
-		sceGuColor(0xffffffff);
-
-		switch (players[g->player].primary)
+		if (xCtrlPress(PSP_CTRL_SELECT) || g->game_over)
 		{
-		case BG3_MACHINE_GUN:
-			x = ICON_START + 0*ICON_WIDTH;
-			break;
-		case BG3_LASER:
-			x = ICON_START + 1*ICON_WIDTH;
-			break;
-		case BG3_TANK_SHELL:
-			x = ICON_START + 2*ICON_WIDTH;
-			break;
-		case BG3_MISSILES:
-			x = ICON_START + 3*ICON_WIDTH;
-			break;
+			//show scores
+
+			sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
+
+	#define SCORES_BOX_WIDTH 200
+	#define SCORES_BOX_HEIGHT 125
+	#define SCORES_BOX_Y 100
+
+			bg3_draw_box(X_SCREEN_WIDTH/2-SCORES_BOX_WIDTH/2, SCORES_BOX_Y, SCORES_BOX_WIDTH, SCORES_BOX_HEIGHT, 0x7f555555, 0xff000000);
+
+	#define SCORES_START_X		(X_SCREEN_WIDTH/2-75)
+	#define SCORES_START_Y		110
+	#define SCORES_VALUE_X		(X_SCREEN_WIDTH/2+75)
+	#define SCORES_SELECT_WIDTH	50
+	#define SCORES_TEXT_HEIGHT	15
+
+			int y = SCORES_START_Y;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(SCORES_START_X, y, "Kills:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(SCORES_VALUE_X, y, "%i", g->scores[g->player].kills);
+			y += SCORES_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(SCORES_START_X, y, "Assists:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(SCORES_VALUE_X, y, "%i", g->scores[g->player].assists);
+			y += SCORES_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(SCORES_START_X, y, "Deaths:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(SCORES_VALUE_X, y, "%i", g->scores[g->player].deaths);
+			y += SCORES_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(SCORES_START_X, y, "Suicides:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(SCORES_VALUE_X, y, "%i", g->scores[g->player].suicides);
+			y += SCORES_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(SCORES_START_X, y, "Shots Fired:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(SCORES_VALUE_X, y, "%.2f", g->scores[g->player].shots_fired);
+			y += SCORES_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(SCORES_START_X, y, "Shots Hit:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			bg3_print_text(SCORES_VALUE_X, y, "%.2f", g->scores[g->player].shots_hit);
+			y += SCORES_TEXT_HEIGHT;
+			xTextSetAlign(X_ALIGN_LEFT);
+			bg3_print_text(SCORES_START_X, y, "Accuracy:");
+			xTextSetAlign(X_ALIGN_RIGHT);
+			if (g->scores[g->player].shots_fired <= 0.0f)
+			{
+				bg3_print_text(SCORES_VALUE_X, y, "NaN");
+			}
+			else
+			{
+				bg3_print_text(SCORES_VALUE_X, y, "%2.2f%%", g->scores[g->player].shots_hit/g->scores[g->player].shots_fired);
+			}
+			y += SCORES_TEXT_HEIGHT;
+
+			if (g->game_over)
+			{
+				//draw "ok" box
+				xTextSetAlign(X_ALIGN_CENTER);
+				bg3_draw_box(X_SCREEN_WIDTH/2-SCORES_SELECT_WIDTH/2, y, SCORES_SELECT_WIDTH, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
+				bg3_print_text(X_SCREEN_WIDTH/2, y, "Finish");
+			}
+
 		}
-		y = 0;
-		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_PRIMARY);
-
-		sceGuDisable(GU_BLEND);
-
-		xTextSetAlign(X_ALIGN_RIGHT);
-		x = X_SCREEN_WIDTH-1;
-		y = ICON_WIDTH+1;
-		switch (players[g->player].primary)
+		else if (players[g->player].hp_armor > 0.0f)
 		{
-		case BG3_MACHINE_GUN:
-			bg3_print_text(x, y, "Machine Gun");
-			bg3_print_text(x, y+15, "oo");
-			break;
-		case BG3_LASER:
-			bg3_print_text(x, y, "Laser");
-			bg3_print_text(x, y+15, "%.1f", players[g->player].laser_ammo);
-			break;
-		case BG3_TANK_SHELL:
-			bg3_print_text(x, y, "Tank Shells");
-			bg3_print_text(x, y+15, "%i", players[g->player].tshell_ammo);
-			break;
-		case BG3_MISSILES:
-			bg3_print_text(x, y, "Missiles");
-			bg3_print_text(x, y+15, "%i", players[g->player].missile_ammo);
-			break;
-		default:
-			bg3_print_text(x, y, "Unknown");
-			break;
+			//not dead, draw hud
+
+	#define ARMOR_START 37
+	#define ARMOR_WIDTH 100
+	#define SHIELDS_START 12
+	#define SHIELDS_WIDTH 200
+	#define HP_DISPLAY_X 2
+	#define HP_DISPLAY_Y 2
+
+			sceGuBlendFunc(GU_ADD, GU_FIX, GU_ONE_MINUS_SRC_COLOR, 0xffffffff, 0);
+			bg3_draw_tex_center(resources->crosshair_tex, X_SCREEN_WIDTH/2, X_SCREEN_HEIGHT/2);
+
+			sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
+			/*
+			bg3_draw_tex(resources->hp_hud_tex, HP_DISPLAY_X, HP_DISPLAY_Y);
+			xTexDraw(
+				resources->hp_armor_tex, HP_DISPLAY_X, HP_DISPLAY_Y,
+				ARMOR_START + (int)(players[g->player].hp_armor*ARMOR_WIDTH),
+				resources->hp_hud_tex->height,
+				0, 0,
+				ARMOR_START + (int)(players[g->player].hp_armor*ARMOR_WIDTH),
+				resources->hp_hud_tex->height);
+			sceGuBlendFunc(GU_ADD, GU_FIX, GU_SRC_COLOR, 0, 0);
+			xTexDraw(
+				resources->hp_shields_tex, HP_DISPLAY_X, HP_DISPLAY_Y,
+				SHIELDS_START + (int)(players[g->player].hp_shields*SHIELDS_WIDTH),
+				resources->hp_shields_tex->height,
+				0, 0,
+				SHIELDS_START + (int)(players[g->player].hp_shields*SHIELDS_WIDTH),
+				resources->hp_shields_tex->height);
+				*/
+			bg3_draw_rect(HP_DISPLAY_X-1, HP_DISPLAY_Y-1, SHIELDS_WIDTH+1, 10, 0xafdddddd);
+			bg3_draw_outline(HP_DISPLAY_X-1, HP_DISPLAY_Y-1, SHIELDS_WIDTH+1, 10, 0xff000000);
+			bg3_draw_vert_grad(HP_DISPLAY_X, HP_DISPLAY_Y, (int)(players[g->player].hp_shields*SHIELDS_WIDTH), 9, 0xaf957000, 0xafffc000);
+			bg3_draw_rect(HP_DISPLAY_X-1, HP_DISPLAY_Y+12-1, ARMOR_WIDTH+1, 10, 0xafdddddd);
+			bg3_draw_outline(HP_DISPLAY_X-1, HP_DISPLAY_Y+12-1, ARMOR_WIDTH+1, 10, 0xff000000);
+			bg3_draw_vert_grad(HP_DISPLAY_X, HP_DISPLAY_Y+12, (int)(players[g->player].hp_armor*ARMOR_WIDTH), 9, 0xaf0000af, 0xaf0000ef);
+			sceGuDisable(GU_BLEND);
+
+	#define ICON_START 350
+	#define ICON_WIDTH 32
+	#define ICON_FILL 0x7f7f7f7f
+	#define ICON_COLOR0 0xffffffff
+	#define ICON_COLOR1 0xff303030
+	#define ICON_OUTLINE 0xff000000
+	#define ICON_PRIMARY 0xff00c6ff
+
+			sceGuEnable(GU_BLEND);
+			sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
+
+			int x = ICON_START;
+			int y = 0;
+			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
+			bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+			if (players[g->player].weapons & (1<<BG3_MACHINE_GUN))
+				sceGuColor(ICON_COLOR0);
+			else
+				sceGuColor(ICON_COLOR1);
+			bg3_draw_tex2(resources->mgun_icon, x, y, ICON_WIDTH, ICON_WIDTH);
+			x += ICON_WIDTH;
+			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
+			bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+			if (players[g->player].weapons & (1<<BG3_LASER))
+				sceGuColor(ICON_COLOR0);
+			else
+				sceGuColor(ICON_COLOR1);
+			bg3_draw_tex2(resources->laser_icon, x, y, ICON_WIDTH, ICON_WIDTH);
+			x += ICON_WIDTH;
+			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
+			bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+			if (players[g->player].weapons & (1<<BG3_TANK_SHELL))
+				sceGuColor(ICON_COLOR0);
+			else
+				sceGuColor(ICON_COLOR1);
+			bg3_draw_tex2(resources->tshell_icon, x, y, ICON_WIDTH, ICON_WIDTH);
+			x += ICON_WIDTH;
+			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
+			bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+			if (players[g->player].weapons & (1<<BG3_MISSILES))
+				sceGuColor(ICON_COLOR0);
+			else
+				sceGuColor(ICON_COLOR1);
+			bg3_draw_tex2(resources->missile_icon, x, y, ICON_WIDTH, ICON_WIDTH);
+
+			sceGuColor(0xffffffff);
+
+			switch (players[g->player].primary)
+			{
+			case BG3_MACHINE_GUN:
+				x = ICON_START + 0*ICON_WIDTH;
+				break;
+			case BG3_LASER:
+				x = ICON_START + 1*ICON_WIDTH;
+				break;
+			case BG3_TANK_SHELL:
+				x = ICON_START + 2*ICON_WIDTH;
+				break;
+			case BG3_MISSILES:
+				x = ICON_START + 3*ICON_WIDTH;
+				break;
+			}
+			y = 0;
+			bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_PRIMARY);
+
+			sceGuDisable(GU_BLEND);
+
+			xTextSetAlign(X_ALIGN_RIGHT);
+			x = X_SCREEN_WIDTH-1;
+			y = ICON_WIDTH+1;
+			switch (players[g->player].primary)
+			{
+			case BG3_MACHINE_GUN:
+				bg3_print_text(x, y, "Machine Gun");
+				bg3_print_text(x, y+15, "oo");
+				break;
+			case BG3_LASER:
+				bg3_print_text(x, y, "Laser");
+				bg3_print_text(x, y+15, "%.1f", players[g->player].laser_ammo);
+				break;
+			case BG3_TANK_SHELL:
+				bg3_print_text(x, y, "Tank Shells");
+				bg3_print_text(x, y+15, "%i", players[g->player].tshell_ammo);
+				break;
+			case BG3_MISSILES:
+				bg3_print_text(x, y, "Missiles");
+				bg3_print_text(x, y+15, "%i", players[g->player].missile_ammo);
+				break;
+			default:
+				bg3_print_text(x, y, "Unknown");
+				break;
+			}
+
+			xTextSetAlign(X_ALIGN_RIGHT);
+			x = X_SCREEN_WIDTH-1;
+			y = X_SCREEN_HEIGHT-2*MENU_TEXT_HEIGHT;
+			int timeleft = bg3_game_times[g->values.game_time_id] - (int)g->time_elapsed;
+			bg3_print_text(x, y, "%i:%02i", timeleft/60, timeleft%60);
+			y += MENU_TEXT_HEIGHT;
+			bg3_print_text(x, y, "%i/%i", g->scores[g->player].kills, bg3_game_scores[g->values.score_target_id]);
 		}
 
-		xTextSetAlign(X_ALIGN_LEFT);
-		bg3_print_text(240, 1, "Score: %i", g->players[g->player].score);
+		if (g->players[g->player].hp_armor <= 0.0f)
+		{
+			//dead, draw spawn timer
+			xTextSetAlign(X_ALIGN_CENTER);
+			bg3_print_text(X_SCREEN_WIDTH/2, 235, "Respawn in:");
+			bg3_print_text(X_SCREEN_WIDTH/2, 250, "%.2f", bg3_game_spawns[g->values.spawn_time_id] - g->players[g->player].death_time);
+		}
+
 	}
 
-	sceGuEnable(GU_DITHER);
+	switch (base->transition)
+	{
+	case BG3_FADE_IN:
+		base->fade -= dt/GAME_FADE_TIME;
+		if (base->fade <= 0.0f)
+		{
+			base->transition = BG3_NO_TRANSITION;
+			base->fade = 0.0f;
+		}
+		break;
+	case BG3_FADE_OUT:
+		base->fade += dt/GAME_FADE_TIME;
+		if (base->fade >= 1.0f)
+		{
+			bg3_save_stats(&base->game.scores[base->game.player]);
+			base->transition = BG3_NO_TRANSITION;
+			base->fade = 1.0f;
+			base->state = BG3_STATE_MENU;
+		}
+		break;
+	}
 
-	xTextSetAlign(X_ALIGN_LEFT);
+	sceGuEnable(GU_BLEND);
+	bg3_set_blend(BLEND_AVERAGE_WITH_ALPHA, 0);
+	bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_COLOR(0.0f, 0.0f, 0.0f, base->fade));
+
 #ifdef X_DEBUG
+	xTextSetAlign(X_ALIGN_LEFT);
 	bg3_print_text(1, X_SCREEN_HEIGHT - 15, "FPS: %f", 1.0f/dt);
 #endif
 
@@ -1861,6 +2364,8 @@ void bg3_game_update_render(bg3_base* base, float dt)
 void bg3_game_loop(bg3_base* base)
 {
 	if (base == NULL) return;
+	base->transition = BG3_FADE_IN;
+	base->fade = 1.0f;
 	int i;
 	for (i = 0; i < base->game.num_players; i++)
 	{
@@ -1869,10 +2374,16 @@ void bg3_game_loop(bg3_base* base)
 
 	xSoundPlay(base->resources.wind_sound);
 
+	bg3_game* g = &base->game;
+
+	bg3_menu menu;
+	menu.screen = 0;
+	menu.selection = 0;
+
 	dust_time = 0.0f;
 	lod_time = LOD_DELAY;
 	float update_time = 0.0f;
-	while(xRunning() && base->state == BG3_GAME_DM)
+	while(xRunning() && base->state == BG3_STATE_GAME)
 	{
 		xTimeUpdate();
 		float dt = xTimeGetDeltaTime();
@@ -1883,13 +2394,28 @@ void bg3_game_loop(bg3_base* base)
 		while (update_time >= frame_time)
 		{
 			xCtrlUpdate(frame_time);
-			bg3_game_reset_players_frame(base);
-			bg3_game_process_player_input(base, frame_time);
-			if (!base->game.paused)
+			if (g->paused)
 			{
+				if (base->transition != BG3_FADE_OUT)
+				{
+					bg3_game_menu_input(base, &menu);
+				}
+			}
+			else
+			{
+				g->time_elapsed += frame_time;
+				if (g->time_elapsed >= (float)bg3_game_times[g->values.game_time_id])
+				{
+					g->game_over = 1;
+				}
 				dust_time += frame_time;
 				lod_time += frame_time;
-				bg3_game_process_ai(base, frame_time);
+				bg3_game_reset_players_frame(base);
+				bg3_game_player_input(base, &menu, frame_time);
+				if (!g->game_over)
+				{
+					bg3_game_process_ai(base, frame_time);
+				}
 				bg3_game_update_players(base, frame_time);
 				while (dust_time > 0.0f)
 				{
@@ -1906,7 +2432,7 @@ void bg3_game_loop(bg3_base* base)
 		}
 		//printf("frames: %i\n", frames);
 		//printf("update time: %f\n", update_time);
-		bg3_game_update_render(base, dt);
+		bg3_game_update_render(base, &menu, dt);
 	}
 
 	xSoundSetStateAll(X_SOUND_STOP, 0);

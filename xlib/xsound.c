@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <pspaudiolib.h>
 #include <pspaudio.h>
 #include "xmem.h"
@@ -115,6 +116,7 @@ static void sound_callback(void *buf, unsigned int reqn, void *pdata)
 
 int xSoundInit(int max_sounds)
 {
+	X_LOG("Attempting to initialize sounds...");
 	if (sounds != NULL) return 1;
 	sounds = (sound_instance*)x_malloc(max_sounds*sizeof(sound_instance));
 	if (sounds == NULL) return 1;
@@ -123,16 +125,19 @@ int xSoundInit(int max_sounds)
 	pspAudioInit();
 	pspAudioSetChannelCallback(X_SOUND_CHANNEL, sound_callback, 0);
 	pspAudioSetVolume(X_SOUND_CHANNEL, PSP_VOLUME_MAX, PSP_VOLUME_MAX);
+	X_LOG("Successfully initialized sounds.");
 	return 0;
 }
 
 void xSoundEnd()
 {
+	X_LOG("Attempting to end sounds...");
 	if (sounds == NULL) return;
 	pspAudioEnd();
 	num_sounds = 0;
 	x_free(sounds);
 	sounds = NULL;
+	X_LOG("Successfully ended sounds.");
 }
 
 void xSoundGlobalVolume(float volume)
@@ -174,6 +179,8 @@ typedef struct {
 
 xSoundBuffer* xSoundLoadBufferWav(char* filename)
 {
+	if (filename == NULL) return NULL;
+	X_LOG("Attempting to load WAV buffer \"%s\"...", filename);
 	xSoundBuffer* buf = (xSoundBuffer*)x_malloc(sizeof(xSoundBuffer));
 	if (buf == NULL) return NULL;
 	buf->data = NULL;
@@ -195,7 +202,7 @@ xSoundBuffer* xSoundLoadBufferWav(char* filename)
 	fseek(file, wave_c.Subchunk1Size-16, SEEK_CUR);
 	fread(&data_c, sizeof(data_chunk), 1, file);
 
-	X_LOG("Loading WAV: %s, ChunkID: 0x%08x, ChunkSize: %u, Format: 0x%08x, Subchunk1ID: 0x%08x, Subchunk1Size: %u\r\n \
+	X_LOG("WAV: ChunkID: 0x%08x, ChunkSize: %u, Format: 0x%08x, Subchunk1ID: 0x%08x, Subchunk1Size: %u \
 		  AudioFormat: %u, NumChannels: %u, SampleRate: %u, ByteRate: %u, BlockAlign: %u, BitsPerSample: %u, Subchunk2ID: 0x%08x, Subchunk2Size: %u",
 		  filename, riff_c.ChunkID, riff_c.ChunkSize, riff_c.Format, wave_c.Subchunk1ID, wave_c.Subchunk1Size,
 		  wave_c.AudioFormat, wave_c.NumChannels, wave_c.SampleRate, wave_c.ByteRate, wave_c.BlockAlign, wave_c.BitsPerSample, data_c.Subchunk2ID, data_c.Subchunk2Size);
@@ -206,7 +213,6 @@ xSoundBuffer* xSoundLoadBufferWav(char* filename)
 		(wave_c.NumChannels != 1 && wave_c.NumChannels != 2) ||
 		(wave_c.BitsPerSample != 8 && wave_c.BitsPerSample != 16))
 	{
-		X_LOG("WAV file not compatible with loader.", 0);
 		fclose(file);
 		xSoundFreeBuffer(buf);
 		return NULL;
@@ -235,11 +241,13 @@ xSoundBuffer* xSoundLoadBufferWav(char* filename)
 	buf->def_panmode = X_SOUND_SEPARATE;
 	buf->def_loop = X_SOUND_NO_LOOP;
 
+	X_LOG("Successfully load WAV buffer.");
 	return buf;
 }
 
 void xSoundFreeBuffer(xSoundBuffer* buf)
 {
+	X_LOG("Freeing WAV buffer.");
 	if (buf != NULL)
 	{
 		if (buf->data != NULL)

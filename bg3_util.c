@@ -175,12 +175,15 @@ void bg3_get_ellipsoid_inverse_matrix(ScePspFMatrix3* m, ScePspFMatrix4* a, xVec
 float bg3_ray_ellipsoid_collision(ScePspFMatrix3* inverse_matrix, xVector3f* pos, xVector3f* origin, xVector3f* dir)
 {
 	xVector3f rel_orig;
+	//relative origin in world space
 	xVec3Sub(&rel_orig, origin, pos);
 	xVector3f e_orig, e_dir;
+	//relative origin in ellipsoid space
 	xVec3Set(&e_orig,
 		xVec3Dot(&rel_orig, (xVector3f*)&inverse_matrix->x),
 		xVec3Dot(&rel_orig, (xVector3f*)&inverse_matrix->y),
 		xVec3Dot(&rel_orig, (xVector3f*)&inverse_matrix->z));
+	//dir in ellipsoid space
 	xVec3Set(&e_dir,
 		xVec3Dot(dir, (xVector3f*)&inverse_matrix->x),
 		xVec3Dot(dir, (xVector3f*)&inverse_matrix->y),
@@ -189,6 +192,7 @@ float bg3_ray_ellipsoid_collision(ScePspFMatrix3* inverse_matrix, xVector3f* pos
 	a = xVec3Dot(&e_dir, &e_dir);
 	b = 2.0f*xVec3Dot(&e_orig, &e_dir);
 	c = xVec3Dot(&e_orig, &e_orig) - 1.0f;
+	//if (x_absf(c) <= X_EPSILON) return 0.0f; //not working...
 	float discrim = b*b - 4.0f*a*c;
 	if (discrim < 0.0f) return -HUGE_VAL;
 	float t = (-b - x_sqrtf(discrim)) / (2.0f*a);
@@ -247,9 +251,9 @@ void bg3_print_text(int x, int y, char* fmt, ...)
 	vsnprintf(buffer, 256, fmt, ap);
 	va_end(ap);
 	xTextSetColor(GU_COLOR(0.0f, 0.0f, 0.0f, 1.0f));
-	xTextPrintf(x+1, y+1, buffer);
+	xTextPrint(x+1, y+1, buffer);
 	xTextSetColor(GU_COLOR(1.0f, 1.0f, 1.0f, 1.0f));
-	xTextPrintf(x, y, buffer);
+	xTextPrint(x, y, buffer);
 	xTextSetColor(0xffffffff);
 }
 
@@ -319,6 +323,12 @@ void bg3_draw_rect(int x, int y, int w, int h, u32 c)
 	sceGuDrawArray(GU_SPRITES, CVertex2D_vtype|GU_TRANSFORM_2D, 2, 0, vertices);
 	sceGuDepthMask(GU_FALSE);
 	xGuLoadStates();
+}
+
+void bg3_draw_box(int x, int y, int w, int h, u32 box, u32 outline)
+{
+	bg3_draw_rect(x, y, w, h, box);
+	bg3_draw_outline(x, y, w, h, outline);
 }
 
 void bg3_draw_vert_grad(int x, int y, int w, int h, u32 c0, u32 c1)

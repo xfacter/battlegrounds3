@@ -1,7 +1,11 @@
 #ifndef __VALUES_H__
 #define __VALUES_H__
 
-#define TANK_RADIUS 0.75f
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define TANK_RADIUS 1.0f
 
 #define SHIELD_SCALE 1.5f
 #define SHIELD_RECHARGE_PER_SEC 0.5f
@@ -83,11 +87,22 @@ enum bg3_primary {
 };
 
 enum bg3_state {
-	BG3_MENU = 0,
+	BG3_STATE_MENU,
+	BG3_STATE_GAME,
+	BG3_STATE_POST_GAME,
+	BG3_STATE_EXIT
+};
+
+enum bg3_game_type {
 	BG3_GAME_DM,
-	//BG3_GAME_TDM,
-	//BG3_GAME_CTF,
-	BG3_EXIT
+	BG3_GAME_TDM,
+	BG3_GAME_CTF
+};
+
+enum bg3_transition {
+	BG3_FADE_IN,
+	BG3_NO_TRANSITION,
+	BG3_FADE_OUT
 };
 
 enum bg3_ai_neutral_state {
@@ -110,5 +125,21 @@ enum bg3_powerup_type {
 	BG3_POWERUP_TSHELL,
 	BG3_POWERUP_MISSILE
 };
+
+extern const int bg3_game_scores[];
+
+#define BG3_GAME_SCORES_NUM 3
+
+extern const int bg3_game_times[];
+
+#define BG3_GAME_TIMES_NUM 3
+
+extern const int bg3_game_spawns[];
+
+#define BG3_GAME_SPAWN_NUM 4
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

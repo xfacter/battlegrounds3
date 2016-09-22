@@ -17,11 +17,6 @@ typedef struct xObj {
 	void* vertices;
 } xObj;
 
-typedef struct xObjLOD {
-	u8 levels;
-	xObj** objects;
-} xObjLOD;
-
 xObj* xObjLoad(char* filename, int optimize);
 
 void xObjFree(xObj* object);
@@ -29,12 +24,6 @@ void xObjFree(xObj* object);
 void xObjTranslate(xObj* object);
 
 void xObjDraw(xObj* object, int reverse_frontface);
-
-void xObjSetupLOD(xObjLOD* l, u8 levels);
-
-void xObjFreeLOD(xObjLOD* l);
-
-void xObjDrawLOD(xObjLOD* l, float start, float spacing, int reverse_frontface);
 
 #ifdef __cplusplus
 }

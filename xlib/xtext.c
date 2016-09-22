@@ -210,27 +210,28 @@ int xTextNumWithLength(char* src, int length)
 typedef struct {
 	s16 u, v;
 	u32 color;
-    float x, y, z;
+    s16 x, y, z;
 } Text_Vert;
 
-#define Text_Vert_vtype (GU_TEXTURE_16BIT|GU_COLOR_8888|GU_VERTEX_32BITF)
+#define Text_Vert_vtype (GU_TEXTURE_16BIT|GU_COLOR_8888|GU_VERTEX_16BIT)
 
-int xTextPrint(int x, int y, char* text, int num)
+int xTextPrint(int x, int y, char* text)
 {
     if (!x_current_font) return 0;
     if (!x_current_font->texture) return 0;
     
     float pos = (float)x;
-    int text_length = xTextLength(text, num);
+	int len = strlen(text);
+    int text_length = xTextLength(text, len);
     if (x_font_align == X_ALIGN_CENTER) pos -= 0.5f*text_length;
     else if (x_font_align == X_ALIGN_RIGHT) pos -= text_length;
     
     u16 char_width = x_current_font->texture->width/16;
 
-    Text_Vert* vertices = (Text_Vert*)sceGuGetMemory(2*num*sizeof(Text_Vert));
+    Text_Vert* vertices = (Text_Vert*)sceGuGetMemory(2*len*sizeof(Text_Vert));
     Text_Vert* vert_ptr = vertices;
     int i = 0;
-    while (/* *text != '\0' && num >= 0 */ i < num)
+    while (/* *text != '\0' && num >= 0 */ i < len)
     {
         int tx = (((u8)*text >> 0) & 0x0f) * char_width;
         int ty = (((u8)*text >> 4) & 0x0f) * char_width;
@@ -238,8 +239,8 @@ int xTextPrint(int x, int y, char* text, int num)
         vert_ptr->u = (s16)(tx);
         vert_ptr->v = (s16)(x_current_font->texture->height - ty);
 		vert_ptr->color = x_font_color;
-        vert_ptr->x = (float)(pos);
-        vert_ptr->y = (float)(y);
+        vert_ptr->x = (int)(pos);
+        vert_ptr->y = (int)(y);
         vert_ptr->z = 0.0f;
         
         vert_ptr += 1;
@@ -248,8 +249,8 @@ int xTextPrint(int x, int y, char* text, int num)
         vert_ptr->u = (s16)(tx + x_current_font->widths[(u8)*text]);
 		vert_ptr->v = (s16)(x_current_font->texture->height - ty - char_width);
 		vert_ptr->color = x_font_color;
-        vert_ptr->x = (float)(pos);
-        vert_ptr->y = (float)(y + x_font_scale*char_width);
+        vert_ptr->x = (int)(pos);
+        vert_ptr->y = (int)(y + x_font_scale*char_width);
         vert_ptr->z = 0.0f;
         
         vert_ptr += 1;
@@ -264,7 +265,7 @@ int xTextPrint(int x, int y, char* text, int num)
     sceGuEnable(GU_BLEND);
     sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
     sceGuDisable(GU_DEPTH_TEST);
-    sceGuDrawArray(GU_SPRITES, Text_Vert_vtype|GU_TRANSFORM_2D, 2*num, 0, vertices);
+    sceGuDrawArray(GU_SPRITES, Text_Vert_vtype|GU_TRANSFORM_2D, 2*len, 0, vertices);
     xGuLoadStates();
 
     return (int)text_length;
@@ -275,9 +276,9 @@ int xTextPrintf(int x, int y, char* text, ... )
     char buffer[512];
     va_list ap;
     va_start(ap, text);
-    int num = vsnprintf(buffer, sizeof(buffer), text, ap);
+    vsnprintf(buffer, sizeof(buffer), text, ap);
     va_end(ap);
-    return xTextPrint(x, y, buffer, num);
+    return xTextPrint(x, y, buffer);
 }
 
 /*

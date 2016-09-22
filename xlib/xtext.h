@@ -40,7 +40,7 @@ int xTextLength(char* text, int num);
 
 int xTextNumWithLength(char* src, int length);
 
-int xTextPrint(int x, int y, char* text, int num);
+int xTextPrint(int x, int y, char* text);
 
 int xTextPrintf(int x, int y, char* text, ... );
 

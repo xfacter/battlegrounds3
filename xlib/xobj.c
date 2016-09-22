@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 #include <pspgu.h>
 #include <pspgum.h>
@@ -63,6 +64,7 @@ typedef struct {
 
 static int obj_optimize(xObj* object)
 {
+	X_LOG("Attempting to optimize OBJ mesh...");
     if (object == NULL) return 1;
 	if (object->type >= OBJ_TNV_OPT) return 1;
 
@@ -138,6 +140,7 @@ static int obj_optimize(xObj* object)
 		object->vertices = new_vertices;
 	}
 
+	X_LOG("Successfully optimized OBJ mesh.");
     return 0;
 }
 
@@ -146,6 +149,7 @@ static int obj_optimize(xObj* object)
 xObj* xObjLoad(char* filename, int optimize)
 {
 	if (filename == NULL) return NULL;
+	X_LOG("Attempting to load OBJ mesh \"%s\"...", filename);
     xObj* object = (xObj*)x_malloc(sizeof(xObj));
     if (object == NULL) return NULL;
 	object->vertices = NULL;
@@ -191,6 +195,8 @@ xObj* xObjLoad(char* filename, int optimize)
         }
     }
 
+	X_LOG("OBJ: %i triangles, %i vertices, %i tex coords, %i normals", num_tris, num_verts, num_texcoords, num_normals);
+
 	if (num_verts <= 0 || num_tris <= 0)
 	{
 		fclose(file);
@@ -201,7 +207,7 @@ xObj* xObjLoad(char* filename, int optimize)
     ScePspFVector2* texcoords = (ScePspFVector2*)x_malloc(num_texcoords*sizeof(ScePspFVector2));
     ScePspFVector3* normals = (ScePspFVector3*)x_malloc(num_normals*sizeof(ScePspFVector3));
     ScePspFVector3* vertices = (ScePspFVector3*)x_malloc(num_verts*sizeof(ScePspFVector3));
-	if (texcoords == NULL || normals == NULL || vertices == NULL)
+	if ((num_texcoords > 0 && texcoords == NULL) || (num_normals > 0 && normals == NULL) || (num_verts > 0 && vertices == NULL))
 	{
 		fclose(file);
 		if (texcoords != NULL) x_free(texcoords);
@@ -380,7 +386,11 @@ xObj* xObjLoad(char* filename, int optimize)
 			//unsupported
 		}
     }
-    
+
+	x_free(vertices);
+	x_free(normals);
+	x_free(texcoords);
+
 	object->bbox[0].x = min.x; object->bbox[0].y = min.y; object->bbox[0].z = min.z;
 	object->bbox[1].x = max.x; object->bbox[1].y = min.y; object->bbox[1].z = min.z;
 	object->bbox[2].x = min.x; object->bbox[2].y = max.y; object->bbox[2].z = min.z;
@@ -393,7 +403,7 @@ xObj* xObjLoad(char* filename, int optimize)
 	object->scale.x = MAX(x_absf(min.x), x_absf(max.x));
 	object->scale.y = MAX(x_absf(min.y), x_absf(max.y));
 	object->scale.z = MAX(x_absf(min.z), x_absf(max.z));
-    
+
 	if (optimize)
 	{
 		obj_optimize(object);
@@ -401,18 +411,16 @@ xObj* xObjLoad(char* filename, int optimize)
 
 	sceKernelDcacheWritebackAll();
 
-    x_free(vertices);
-    x_free(normals);
-    x_free(texcoords);
-    
     fclose(file);
 	
+	X_LOG("Successfully loaded OBJ mesh.");
     return object;
 }
 
 void xObjFree(xObj* object)
 {
-    if (!object) return;
+	X_LOG("Freeing OBJ mesh.");
+	if (!object) return;
     if (object->vertices) x_free(object->vertices);
     x_free(object);
 }
@@ -438,36 +446,4 @@ void xObjDraw(xObj* object, int reverse_frontface)
 		sceGuFrontFace(GU_CW);
 	sceGumPopMatrix();
 	sceGuEndObject();
-}
-
-void xObjSetupLOD(xObjLOD* l, u8 levels)
-{
-	l->levels = levels;
-	l->objects = (xObj**)x_malloc(levels*sizeof(xObj*));
-}
-
-void xObjFreeLOD(xObjLOD* l)
-{
-	if (l->objects)
-	{
-		x_free(l->objects);
-		l->objects = 0;
-	}
-}
-
-void xObjDrawLOD(xObjLOD* l, float start, float spacing, int reverse_frontface)
-{
-	ScePspFMatrix4 view, model;
-	sceGumMatrixMode(GU_VIEW);
-	sceGumStoreMatrix(&view);
-	gumFastInverse(&view, &view);
-	sceGumMatrixMode(GU_MODEL);
-	sceGumStoreMatrix(&model);
-	xVector3f vec;
-	xVec3Sub(&vec, (xVector3f*)&model.w, (xVector3f*)&view.w);
-	float r = (xVec3Length(&vec) - start)/spacing;
-	int level = (r < 0.0f ? 0 : (int)r + 1);
-	//printf("level: %i\n", level);
-	if (level >= l->levels) level = l->levels - 1;
-	xObjDraw(l->objects[level], reverse_frontface);
 }

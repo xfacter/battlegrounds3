@@ -4,7 +4,6 @@
 #include "xlib/xmem.h"
 #include "xlib/xini.h"
 #include "xlib/xmath.h"
-#include "xlib/xlog.h"
 #include "values.h"
 
 #include "map.h"
@@ -15,6 +14,7 @@
 
 bg3_map* bg3_load_map(int id)
 {
+	X_LOG("Attempting to load map %i...", id);
 	if (id < 1) return NULL;
 	bg3_map* m = (bg3_map*)x_malloc(sizeof(bg3_map));
 	if (m == NULL) return NULL;
@@ -273,13 +273,14 @@ bg3_map* bg3_load_map(int id)
 	}
 	*/
 
-	xLogPrintf("map: %i, %f, %f, (%f, %f, %f), %i, (%i, %i), %i, %i", m->type, m->ambient, m->intensity, m->light_pos.x, m->light_pos.y, m->light_pos.z, m->num_spawns, m->spawns[0].x, m->spawns[0].y, m->num_poi, m->num_powerups);
-
+	X_LOG("map: type %i, ambient %f, intensity %f, light_pos (%f, %f, %f), num_spawns %i, spawn (%i, %i), num_poi %i, num_powerups %i", m->type, m->ambient, m->intensity, m->light_pos.x, m->light_pos.y, m->light_pos.z, m->num_spawns, m->spawns[0].x, m->spawns[0].y, m->num_poi, m->num_powerups);
+	X_LOG("Successfully loaded map.");
 	return m;
 }
 
 void bg3_free_map(bg3_map* m)
 {
+	X_LOG("Freeing map.");
 	if (m != NULL)
 	{
 		if (m->spawns != NULL)
@@ -378,6 +379,7 @@ int bg3_astar_to_map(bg3_map* m, int id)
 
 bg3_map_preview* bg3_load_map_preview(int id)
 {
+	X_LOG("Attempting to load map preview...");
 	bg3_map_preview* p = (bg3_map_preview*)x_malloc(sizeof(bg3_map_preview));
 	if (p == NULL) return NULL;
 	char buffer[256];
@@ -397,11 +399,13 @@ bg3_map_preview* bg3_load_map_preview(int id)
 		return NULL;
 	}
 
+	X_LOG("Successfully loaded map preview.");
 	return p;
 }
 
 void bg3_free_map_preview(bg3_map_preview* p)
 {
+	X_LOG("Freeing map preview.");
 	if (p != NULL)
 	{
 		if (p->terrain_tex != NULL)
