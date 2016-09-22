@@ -154,7 +154,7 @@ xObj* xObjLoad(char* filename, int optimize)
 	object->pos.z = 0.0f;
     FILE* file = fopen(filename, "r");
     if (file == NULL)
-    {
+	{
         xObjFree(object);
         return NULL;
     }
@@ -193,6 +193,7 @@ xObj* xObjLoad(char* filename, int optimize)
 
 	if (num_verts <= 0 || num_tris <= 0)
 	{
+		fclose(file);
 		xObjFree(object);
 		return NULL;
 	}
@@ -202,6 +203,7 @@ xObj* xObjLoad(char* filename, int optimize)
     ScePspFVector3* vertices = (ScePspFVector3*)x_malloc(num_verts*sizeof(ScePspFVector3));
 	if (texcoords == NULL || normals == NULL || vertices == NULL)
 	{
+		fclose(file);
 		if (texcoords != NULL) x_free(texcoords);
 		if (normals != NULL) x_free(normals);
 		if (vertices != NULL) x_free(vertices);
@@ -239,6 +241,7 @@ xObj* xObjLoad(char* filename, int optimize)
     object->vertices = x_malloc(object->num_verts*size);
 	if (object->vertices == NULL)
 	{
+		fclose(file);
 		x_free(texcoords);
 		x_free(normals);
 		x_free(vertices);

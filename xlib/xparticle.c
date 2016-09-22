@@ -189,7 +189,7 @@ void xParticleSystemRender(xParticleSystem* s, ScePspFMatrix4* view)
 		{
 		case X_PARTICLE_SPRITES:
 			{
-				xVector3f up_right = {0.5f*(view->x.x + view->y.x), 0.5f*(view->x.y + view->y.y), 0.5f*(view->x.z + view->y.z)};
+				xVector3f up_left = {-view->x.x + view->y.x, -view->x.y + view->y.y, -view->x.z + view->y.z};
 				sprite_vertex* vertices = (sprite_vertex*)sceGuGetMemory(2*s->num_particles*sizeof(sprite_vertex));
 				for (i = 0; i < s->num_particles; i++)
 				{
@@ -220,18 +220,20 @@ void xParticleSystemRender(xParticleSystem* s, ScePspFMatrix4* view)
 						t -= idx;
 						size = s->sizes[idx] + t*(s->sizes[idx+1] - s->sizes[idx]);
 					}
+					xVector3f temp;
+					xVec3Scale(&temp, &up_left, 0.5f*size);
 					vertices[i*2+0].u = 0;
-					vertices[i*2+0].v = 0;
+					vertices[i*2+0].v = 127;
 					vertices[i*2+0].c = color32;
-					vertices[i*2+0].x = p->pos.x - size*up_right.x;
-					vertices[i*2+0].y = p->pos.y - size*up_right.y;
-					vertices[i*2+0].z = p->pos.z - size*up_right.z;
+					vertices[i*2+0].x = p->pos.x + temp.x;
+					vertices[i*2+0].y = p->pos.y + temp.y;
+					vertices[i*2+0].z = p->pos.z + temp.z;
 					vertices[i*2+1].u = 127;
-					vertices[i*2+1].v = 127;
+					vertices[i*2+1].v = 0;
 					vertices[i*2+1].c = color32;
-					vertices[i*2+1].x = p->pos.x + size*up_right.x;
-					vertices[i*2+1].y = p->pos.y + size*up_right.y;
-					vertices[i*2+1].z = p->pos.z + size*up_right.z;
+					vertices[i*2+1].x = p->pos.x - temp.x;
+					vertices[i*2+1].y = p->pos.y - temp.y;
+					vertices[i*2+1].z = p->pos.z - temp.z;
 				}
 				sceGumDrawArray(GU_SPRITES, sprite_vertex_vtype|GU_TRANSFORM_3D, 2*s->num_particles, 0, vertices);
 			}

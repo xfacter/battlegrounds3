@@ -32,6 +32,7 @@ bg3_map* bg3_load_map(int id)
 	FILE* file = fopen(buffer, "r");
 	if (file == NULL)
 	{
+		fclose(file);
 		bg3_free_map(m);
 		return NULL;
 	}
@@ -69,6 +70,7 @@ bg3_map* bg3_load_map(int id)
 	/*
 	if (m->sky_tex == NULL)
 	{
+		fclose(file);
 		bg3_free_map(m);
 		return NULL;
 	}
@@ -114,6 +116,7 @@ bg3_map* bg3_load_map(int id)
 	m->spawns = (ScePspIVector2*)x_malloc(m->num_spawns*sizeof(ScePspIVector2));
 	if (m->spawns == NULL)
 	{
+		fclose(file);
 		bg3_free_map(m);
 		return NULL;
 	}
@@ -129,8 +132,12 @@ bg3_map* bg3_load_map(int id)
 	m->poi = (ScePspIVector2*)x_malloc(m->num_poi*sizeof(ScePspIVector2));
 	if (m->poi == NULL)
 	{
+		/*
+		fclose(file);
 		bg3_free_map(m);
 		return NULL;
+		*/
+		m->num_poi = 0;
 	}
 	for (i = 0; i < m->num_poi; i++)
 	{
@@ -144,8 +151,12 @@ bg3_map* bg3_load_map(int id)
 	m->powerups = (map_powerup*)x_malloc(m->num_powerups*sizeof(map_powerup));
 	if (m->powerups == NULL)
 	{
+		/*
+		fclose(file);
 		bg3_free_map(m);;
 		return NULL;
+		*/
+		m->num_powerups = 0;
 	}
 	for (i = 0; i < m->num_powerups; i++)
 	{
@@ -183,8 +194,7 @@ bg3_map* bg3_load_map(int id)
 	fclose(file);
 
 	snprintf(buffer, 256, "./maps/%02i/terrain.raw", id);
-	xHeightmapLoad(&m->hmp, buffer, width, tile_scale, height_scale);
-	if (m->hmp.vertices == NULL)
+	if (xHeightmapLoad(&m->hmp, buffer, width, tile_scale, height_scale) != 0)
 	{
 		bg3_free_map(m);
 		return NULL;
@@ -310,21 +320,26 @@ void bg3_free_map(bg3_map* m)
 
 void bg3_map_random_spawn(bg3_map* m, ScePspFVector2* out)
 {
-	if (m == NULL || out == NULL) return;
+	if (m == NULL || out == NULL || m->num_spawns <= 0) return;
 	int rand = x_randi(0, m->num_spawns-1);
-	out->x = m->powerups[rand].pos.x*m->hmp.tile_scale + 0.5f*m->hmp.tile_scale;
-	out->y = m->powerups[rand].pos.y*m->hmp.tile_scale + 0.5f*m->hmp.tile_scale;
+	out->x = m->spawns[rand].x*m->hmp.tile_scale + 0.5f*m->hmp.tile_scale;
+	out->y = m->spawns[rand].y*m->hmp.tile_scale + 0.5f*m->hmp.tile_scale;
 }
 
 void bg3_map_random_poi(bg3_map* m, ScePspIVector2* out)
 {
 	if (m == NULL || out == NULL) return;
-	int rand = x_randi(0, m->num_poi-1);
-	*out = m->poi[rand];
-	/*
-	out->x = m->poi[rand].x*m->hmp.tile_scale + 0.5f*m->hmp.tile_scale;
-	out->y = m->poi[rand].y*m->hmp.tile_scale + 0.5f*m->hmp.tile_scale;
-	*/
+	if (m->num_poi <= 0)
+	{
+		out->x = -1;
+		out->y = -1;
+	}
+	else
+	{
+		int rand = x_randi(0, m->num_poi-1);
+		*out = m->poi[rand];
+	}
+
 }
 
 void bg3_map_setup_env(bg3_map* m)

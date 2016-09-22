@@ -15,7 +15,7 @@ LIBDIR =
 LIBS = -lpspgum_vfpu -lpspvfpu -lpspgu -lpspaudiolib -lpspaudio -lpsprtc -lm
 LDFLAGS =
 
-OBJS = main.o xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xwav.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o bg3_util.o map.o astar.o base.o game.o menu.o
+OBJS = main.o xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xsound.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o bg3_util.o map.o astar.o base.o game.o menu.o
 
 PSPSDK=$(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
@@ -40,7 +40,7 @@ xlib/xtexture.o: xlib/xtexture.c xlib/xtexture.h
 
 xlib/xtext.o: xlib/xtext.c xlib/xtext.h
 
-xlib/xwav.o: xlib/xwav.c xlib/xwav.h
+xlib/xsound.o: xlib/xsound.c xlib/xsound.h
 
 xlib/xobj.o: xlib/xobj.c xlib/xobj.h
 
@@ -64,6 +64,6 @@ game.o: game.c game.h base.o
 
 menu.o: menu.c menu.h base.o
 
-main.o: main.c xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xwav.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o bg3_util.o map.o astar.o base.o game.o menu.o
+main.o: main.c xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xsound.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o bg3_util.o map.o astar.o base.o game.o menu.o
 
 EBOOT.PBP: main.o

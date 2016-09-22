@@ -1,19 +1,18 @@
 PRIORITIES
-	add icons for weapons
 	add content (more maps, etc)
 	add radar
+	add destroyed tank graphics?
 	2. reduce A* map size
-	4. sound
 	5. achievements?
+
+
+
 
 may want to look up:
 	- quake physics
 
 things i still need
-	- map format/loading
-	- AI
 	- sound effects
-	- a menu...
 	- radar
 	- better health display
 	- swirly particles beneath the tanks
@@ -51,7 +50,7 @@ TODO:
 	shield effect - small section of sphere, grows and fades from collision point of ellipsoidal shield, normal is calculated spherically
 	for physics - move players on xy plane, slide up if collision
 	add frustum culling to map->hmp map->hmp_lod and particle systems
-	redo map->hmp map->hmp_lod: new way will have a block drawer, allocates memory in display list for every block, sets up new verts for every block, 
+	redo map->hmp map->hmp_lod: new way will have a block drawer, allocates memory in display list for every block, sets up new verts for every block,
 		just moves indices at the edge to the bottom right of the seam-block to accommodate for seams (http://www.3dtechdev.com/images/lodimage3.png)
 		also frustum cull
 	redo physics so it works in all three dimensions instead of just 2

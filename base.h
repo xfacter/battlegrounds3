@@ -6,6 +6,7 @@
 #include "xlib/xtexture.h"
 #include "xlib/xtext.h"
 #include "xlib/xobj.h"
+#include "xlib/xsound.h"
 #include "map.h"
 #include "astar.h"
 #include "bg3_util.h"
@@ -45,6 +46,8 @@ typedef struct missile {
 	ScePspFVector3 target;
 	float time;
 	float smoke_time;
+	xSound3dSource snd_src;
+	int snd_ref;
 } missile;
 
 typedef struct bg3_missiles {
@@ -105,9 +108,12 @@ typedef struct bg3_player {
 	ScePspFVector3 laser_len;
 	//int laser_hit_last;
 	float laser_time;
+	xSound3dSource laser_snd_src;
+	int laser_snd_ref;
 
 	float smoke_time;
 	float spark_time;
+	float powerup_time;
 
 	int firing;
 	float laser_ammo;
@@ -149,14 +155,25 @@ typedef struct bg3_resources {
 	xTexture* explosion_tex;
 	xTexture* laser_tex;
 	xTexture* tshell_tex;
-	xTexture* scramble_tex;
+	xTexture* lasermark_tex;
 	xTexture* hp_hud_tex;
 	xTexture* hp_armor_tex;
 	xTexture* hp_shields_tex;
 	xTexture* muzzleflash_tex;
 	xTexture* scorch_tex;
 	xTexture* shield_tex;
-	xTexture* health_tex;
+	xTexture* shield_icon;
+	xTexture* mgun_icon;
+	xTexture* laser_icon;
+	xTexture* tshell_icon;
+	xTexture* missile_icon;
+	xSoundBuffer* mgun_sound;
+	xSoundBuffer* laser_sound;
+	xSoundBuffer* tshell_sound;
+	xSoundBuffer* missile_launch_sound;
+	xSoundBuffer* missile_fly_sound;
+	xSoundBuffer* explosion_sound;
+	xSoundBuffer* powerup_sound;
 } bg3_resources;
 
 typedef struct bg3_effects {
@@ -170,15 +187,15 @@ typedef struct bg3_effects {
 	xParticleSystem* expl_smoke_ps;
 	xParticleSystem* sparks_ps;
 	xParticleSystem* smoke_ps;
-	xParticleSystem* scramble_ps;
+	xParticleSystem* lasermark_ps;
 	xParticleSystem* recharge_ps;
 	xParticleSystem* dust_ps;
 	xParticleSystem* wind_ps;
 	xParticleSystem* laser_ps;
 	xParticleSystem* muzzleflash_ps;
-	xParticleSystem* health_ps;
 	xParticleSystem* powerup_ps;
 	xParticleSystem* gun_smoke_ps;
+	xParticleSystem* powerup_pickup_ps;
 	bg3_shadow* shadow;
 	bg3_decals* bullet_decals;
 	bg3_decals* scorch_decals;
@@ -201,6 +218,10 @@ typedef struct bg3_game {
 	int paused;
 	int exit;
 	float fade;
+
+	int spawn_ammo_laser;
+	int spawn_ammo_tshells;
+	int spawn_ammo_missiles;
 } bg3_game;
 
 typedef struct bg3_base {
@@ -253,7 +274,7 @@ bg3_tshells* bg3_create_tshells(int num);
 
 void bg3_free_tshells(bg3_tshells* t);
 
-void bg3_add_tshell(bg3_tshells* t, ScePspFVector3* p0, ScePspFVector3* p1);
+void bg3_add_tshell(bg3_tshells* t, bg3_base* base, ScePspFVector3* p0, ScePspFVector3* p1);
 
 void bg3_update_tshells(bg3_tshells* t, float dt);
 
@@ -263,7 +284,7 @@ bg3_bullets* bg3_create_bullets(int num);
 
 void bg3_free_bullets(bg3_bullets* b);
 
-void bg3_add_bullet(bg3_bullets* b, int player, ScePspFVector3* pos, ScePspFVector3* vel);
+void bg3_add_bullet(bg3_bullets* b, bg3_base* base, int player, ScePspFVector3* pos, ScePspFVector3* vel);
 
 void bg3_update_bullets(bg3_bullets* b, bg3_base* base, float dt);
 
@@ -273,7 +294,7 @@ bg3_missiles* bg3_create_missiles(int num);
 
 void bg3_free_missiles(bg3_missiles* m);
 
-void bg3_add_missile(bg3_missiles* m, int player, ScePspFVector3* pos, ScePspFVector3* dir, ScePspFVector3* target);
+void bg3_add_missile(bg3_missiles* m, bg3_base* base, int player, ScePspFVector3* pos, ScePspFVector3* dir, ScePspFVector3* target);
 
 void bg3_update_missiles(bg3_missiles* m, bg3_base* base, float dt);
 
@@ -287,6 +308,6 @@ void bg3_add_powerup(bg3_powerups* p, ScePspFVector3* pos, int type, int respawn
 
 void bg3_update_powerups(bg3_powerups* p, bg3_base* base, float dt);
 
-void bg3_draw_powerups(bg3_powerups* p, bg3_base* base);
+void bg3_draw_powerups(bg3_powerups* p, bg3_base* base, ScePspFMatrix4* view);
 
 #endif

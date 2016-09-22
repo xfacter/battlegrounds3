@@ -104,14 +104,27 @@ void bg3_base_load_resources(bg3_base* base)
 	base->resources.explosion_tex = xTexLoadTGA("./data/explosion.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.laser_tex = xTexLoadTGA("./data/laser.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.tshell_tex = xTexLoadTGA("./data/tshell.tga", 0, X_TEX_TOP_IN_VRAM);
-	base->resources.scramble_tex = xTexLoadTGA("./data/scramble.tga", 0, X_TEX_TOP_IN_VRAM);
+	base->resources.lasermark_tex = xTexLoadTGA("./data/lasermark.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.hp_hud_tex = xTexLoadTGA("./data/hp_hud.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.hp_armor_tex = xTexLoadTGA("./data/hp_armor.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.hp_shields_tex = xTexLoadTGA("./data/hp_shields.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.muzzleflash_tex = xTexLoadTGA("./data/muzzleflash.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.scorch_tex = xTexLoadTGA("./data/scorch.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.shield_tex = xTexLoadTGA("./data/shield.tga", 0, X_TEX_TOP_IN_VRAM);
-	base->resources.health_tex = xTexLoadTGA("./data/health.tga", 0, X_TEX_TOP_IN_VRAM);
+	base->resources.shield_icon = xTexLoadTGA("./data/shield_icon.tga", 0, X_TEX_TOP_IN_VRAM);
+	base->resources.mgun_icon = xTexLoadTGA("./data/mgun_icon.tga", 0, X_TEX_TOP_IN_VRAM);
+	base->resources.laser_icon = xTexLoadTGA("./data/laser_icon.tga", 0, X_TEX_TOP_IN_VRAM);
+	base->resources.tshell_icon = xTexLoadTGA("./data/tshell_icon.tga", 0, X_TEX_TOP_IN_VRAM);
+	base->resources.missile_icon = xTexLoadTGA("./data/missile_icon.tga", 0, X_TEX_TOP_IN_VRAM);
+	base->resources.mgun_sound = xSoundLoadBufferWav("./data/mgun.wav");
+	base->resources.laser_sound = xSoundLoadBufferWav("./data/laser.wav");
+	if (base->resources.laser_sound != NULL) base->resources.laser_sound->def_loop = X_SOUND_LOOP;
+	base->resources.tshell_sound = xSoundLoadBufferWav("./data/tshell.wav");
+	base->resources.missile_launch_sound = xSoundLoadBufferWav("./data/missile_launch.wav");
+	base->resources.missile_fly_sound = xSoundLoadBufferWav("./data/missile_fly.wav");
+	if (base->resources.missile_fly_sound != NULL) base->resources.missile_fly_sound->def_loop = X_SOUND_LOOP;
+	base->resources.explosion_sound = xSoundLoadBufferWav("./data/explosion.wav");
+	base->resources.powerup_sound = xSoundLoadBufferWav("./data/powerup.wav");
 	base->resources.loaded = 1;
 }
 
@@ -137,14 +150,25 @@ void bg3_base_free_resources(bg3_base* base)
 	xTexFree(base->resources.explosion_tex);
 	xTexFree(base->resources.laser_tex);
 	xTexFree(base->resources.tshell_tex);
-	xTexFree(base->resources.scramble_tex);
+	xTexFree(base->resources.lasermark_tex);
 	xTexFree(base->resources.hp_hud_tex);
 	xTexFree(base->resources.hp_armor_tex);
 	xTexFree(base->resources.hp_shields_tex);
 	xTexFree(base->resources.muzzleflash_tex);
 	xTexFree(base->resources.scorch_tex);
 	xTexFree(base->resources.shield_tex);
-	xTexFree(base->resources.health_tex);
+	xTexFree(base->resources.shield_icon);
+	xTexFree(base->resources.mgun_icon);
+	xTexFree(base->resources.laser_icon);
+	xTexFree(base->resources.tshell_icon);
+	xTexFree(base->resources.missile_icon);
+	xSoundFreeBuffer(base->resources.mgun_sound);
+	xSoundFreeBuffer(base->resources.laser_sound);
+	xSoundFreeBuffer(base->resources.tshell_sound);
+	xSoundFreeBuffer(base->resources.missile_launch_sound);
+	xSoundFreeBuffer(base->resources.missile_fly_sound);
+	xSoundFreeBuffer(base->resources.explosion_sound);
+	xSoundFreeBuffer(base->resources.powerup_sound);
 	memset(&base->resources, 0, sizeof(bg3_resources));
 	base->resources.loaded = 0;
 }
@@ -333,24 +357,24 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.smoke_ps->prim = X_PARTICLE_SPRITES;
 	}
 
-	base->effects.scramble_ps = xParticleSystemConstruct(32);
-	if (base->effects.scramble_ps)
+	base->effects.lasermark_ps = xParticleSystemConstruct(64);
+	if (base->effects.lasermark_ps)
 	{
-		xVec3Set(&base->effects.scramble_ps->pos_rand, 0.0f, 0.0f, 0.0f);
-		xVec3Set(&base->effects.scramble_ps->vel, 0.0f, 0.0f, 0.0f);
-		xVec3Set(&base->effects.scramble_ps->vel_rand, 0.0f, 0.0f, 0.0f);
-		xVec3Set(&base->effects.scramble_ps->accel, 0.0f, 0.0f, 0.0f);
-		xCol4Set(&base->effects.scramble_ps->colors[0], 255/255.0f, 255/255.0f, 255/255.0f, 1.0f);
-		xCol4Set(&base->effects.scramble_ps->colors[1], 255/255.0f, 255/255.0f, 255/255.0f, 0.0f);
-		base->effects.scramble_ps->num_cols = 2;
-		base->effects.scramble_ps->sizes[0] = 1.0f;
-		base->effects.scramble_ps->sizes[1] = 0.75f;
-		base->effects.scramble_ps->num_sizes = 2;
-		base->effects.scramble_ps->size_rand = 0.25f;
-		base->effects.scramble_ps->life = 0.5f;
-		base->effects.scramble_ps->life_rand = 0.1f;
-		base->effects.scramble_ps->rate = 0;
-		base->effects.scramble_ps->prim = X_PARTICLE_SPRITES;
+		xVec3Set(&base->effects.lasermark_ps->pos_rand, 0.0f, 0.0f, 0.0f);
+		xVec3Set(&base->effects.lasermark_ps->vel, 0.0f, 0.0f, 0.0f);
+		xVec3Set(&base->effects.lasermark_ps->vel_rand, 0.0f, 0.0f, 0.0f);
+		xVec3Set(&base->effects.lasermark_ps->accel, 0.0f, 0.0f, 0.0f);
+		xCol4Set(&base->effects.lasermark_ps->colors[0], 255/255.0f, 255/255.0f, 255/255.0f, 1.0f);
+		xCol4Set(&base->effects.lasermark_ps->colors[1], 255/255.0f, 255/255.0f, 255/255.0f, 0.0f);
+		base->effects.lasermark_ps->num_cols = 2;
+		base->effects.lasermark_ps->sizes[0] = 1.0f;
+		base->effects.lasermark_ps->sizes[1] = 0.75f;
+		base->effects.lasermark_ps->num_sizes = 2;
+		base->effects.lasermark_ps->size_rand = 0.25f;
+		base->effects.lasermark_ps->life = 0.5f;
+		base->effects.lasermark_ps->life_rand = 0.1f;
+		base->effects.lasermark_ps->rate = 0;
+		base->effects.lasermark_ps->prim = X_PARTICLE_SPRITES;
 	}
 
 	base->effects.recharge_ps = xParticleSystemConstruct(32);
@@ -437,9 +461,9 @@ void bg3_base_init_effects(bg3_base* base)
 		xCol4Set(&base->effects.laser_ps->colors[0], 255/255.0f, 220/255.0f, 0/255.0f, 1.0f);
 		xCol4Set(&base->effects.laser_ps->colors[1], 255/255.0f, 220/255.0f, 0/255.0f, 0.0f);
 		base->effects.laser_ps->num_cols = 2;
-		base->effects.laser_ps->sizes[0] = 0.25f;
+		base->effects.laser_ps->sizes[0] = 0.5f;
 		base->effects.laser_ps->num_sizes = 1;
-		base->effects.laser_ps->size_rand = 0.1f;
+		base->effects.laser_ps->size_rand = 0.0f;
 		base->effects.laser_ps->life = 0.05f;
 		base->effects.laser_ps->life_rand = 0.0f;
 		base->effects.laser_ps->rate = 0;
@@ -465,32 +489,12 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.muzzleflash_ps->prim = X_PARTICLE_SPRITES;
 	}
 
-	base->effects.health_ps = xParticleSystemConstruct(1024);
-	if (base->effects.health_ps)
-	{
-		xVec3Set(&base->effects.health_ps->pos_rand, 0.25f, 0.25f, 0.25f);
-		xVec3Set(&base->effects.health_ps->vel, 0.0f, 0.0f, 0.0f);
-		xVec3Set(&base->effects.health_ps->vel_rand, 0.5f, 0.5f, 0.5f);
-		xVec3Set(&base->effects.health_ps->accel, 0.0f, 0.0f, 0.0f);
-		xCol4Set(&base->effects.health_ps->colors[0], 255/255.0f, 255/255.0f, 255/255.0f, 1.0f);
-		base->effects.health_ps->num_cols = 1;
-		base->effects.health_ps->sizes[0] = 0.0f;
-		base->effects.health_ps->sizes[1] = 0.5f;
-		base->effects.health_ps->sizes[2] = 0.0f;
-		base->effects.health_ps->num_sizes = 3;
-		base->effects.health_ps->size_rand = 0.0f;
-		base->effects.health_ps->life = 1.0f;
-		base->effects.health_ps->life_rand = 0.1f;
-		base->effects.health_ps->rate = 0;
-		base->effects.health_ps->prim = X_PARTICLE_SPRITES;
-	}
-
 	base->effects.powerup_ps = xParticleSystemConstruct(1024);
 	if (base->effects.powerup_ps)
 	{
 		xVec3Set(&base->effects.powerup_ps->pos_rand, 0.25f, 0.25f, 0.25f);
 		xVec3Set(&base->effects.powerup_ps->vel, 0.0f, 0.0f, 0.0f);
-		xVec3Set(&base->effects.powerup_ps->vel_rand, 0.5f, 0.5f, 0.5f);
+		xVec3Set(&base->effects.powerup_ps->vel_rand, 0.5f, 0.5f, 0.1f);
 		xVec3Set(&base->effects.powerup_ps->accel, 0.0f, 0.0f, 0.0f);
 		xCol4Set(&base->effects.powerup_ps->colors[0], 255/255.0f, 200/255.0f, 0/255.0f, 1.0f);
 		base->effects.powerup_ps->num_cols = 1;
@@ -517,12 +521,32 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.gun_smoke_ps->num_cols = 2;
 		base->effects.gun_smoke_ps->sizes[0] = 0.5f;
 		base->effects.gun_smoke_ps->num_sizes = 1;
-		base->effects.gun_smoke_ps->size_rand = 0.5f;
+		base->effects.gun_smoke_ps->size_rand = 0.25f;
 		base->effects.gun_smoke_ps->life = 0.75f;
 		base->effects.gun_smoke_ps->life_rand = 0.25f;
 		base->effects.gun_smoke_ps->friction = 2.0f;
 		base->effects.gun_smoke_ps->rate = 0;
 		base->effects.gun_smoke_ps->prim = X_PARTICLE_SPRITES;
+	}
+
+	base->effects.powerup_pickup_ps = xParticleSystemConstruct(32);
+	if (base->effects.powerup_pickup_ps)
+	{
+		xVec3Set(&base->effects.powerup_pickup_ps->pos_rand, 0.0f, 0.0f, 0.0f);
+		xVec3Set(&base->effects.powerup_pickup_ps->vel, 0.0f, 0.0f, 0.0f);
+		xVec3Set(&base->effects.powerup_pickup_ps->vel_rand, 0.0f, 0.0f, 0.0f);
+		xVec3Set(&base->effects.powerup_pickup_ps->accel, 0.0f, 0.0f, 0.0f);
+		xCol4Set(&base->effects.powerup_pickup_ps->colors[0], 255/255.0f, 255/255.0f, 255/255.0f, 1.0f);
+		xCol4Set(&base->effects.powerup_pickup_ps->colors[1], 255/255.0f, 255/255.0f, 255/255.0f, 0.0f);
+		base->effects.powerup_pickup_ps->num_cols = 2;
+		base->effects.powerup_pickup_ps->sizes[0] = 2.5f;
+		base->effects.powerup_pickup_ps->sizes[1] = 1.5f;
+		base->effects.powerup_pickup_ps->num_sizes = 2;
+		base->effects.powerup_pickup_ps->size_rand = 0.25f;
+		base->effects.powerup_pickup_ps->life = 0.25f;
+		base->effects.powerup_pickup_ps->life_rand = 0.1f;
+		base->effects.powerup_pickup_ps->rate = 0;
+		base->effects.powerup_pickup_ps->prim = X_PARTICLE_SPRITES;
 	}
 
 	base->effects.shadow = bg3_create_shadow(GU_PSM_5650, 256, 256);
@@ -545,13 +569,12 @@ void bg3_base_free_effects(bg3_base* base)
 	xParticleSystemDestroy(base->effects.expl_smoke_ps);
 	xParticleSystemDestroy(base->effects.sparks_ps);
 	xParticleSystemDestroy(base->effects.smoke_ps);
-	xParticleSystemDestroy(base->effects.scramble_ps);
+	xParticleSystemDestroy(base->effects.lasermark_ps);
 	xParticleSystemDestroy(base->effects.recharge_ps);
 	xParticleSystemDestroy(base->effects.dust_ps);
 	xParticleSystemDestroy(base->effects.wind_ps);
 	xParticleSystemDestroy(base->effects.laser_ps);
 	xParticleSystemDestroy(base->effects.muzzleflash_ps);
-	xParticleSystemDestroy(base->effects.health_ps);
 	xParticleSystemDestroy(base->effects.gun_smoke_ps);
 	bg3_free_shadow(base->effects.shadow);
 	bg3_free_decals(base->effects.bullet_decals);
@@ -601,6 +624,7 @@ void bg3_base_load_game(bg3_base* base, int map_id)
 	g->players = (bg3_player*)x_malloc(g->map->players*sizeof(bg3_player));
 	if (g->players == NULL)
 	{
+		bg3_free_map(g->map);
 		g->num_players = 0;
 		return;
 	}
@@ -611,7 +635,6 @@ void bg3_base_load_game(bg3_base* base, int map_id)
 		g->players[i].team = 0;
 		g->players[i].score = 0;
 		g->players[i].ai.path = astar_create_path(1024);
-		bg3_spawn_player(base, i);
 	}
 
 	g->tshells = bg3_create_tshells(64);
@@ -632,6 +655,10 @@ void bg3_base_load_game(bg3_base* base, int map_id)
 	g->ai_update_time = 0.0f;
 	g->paused = 0;
 	g->exit = 0;
+
+	g->spawn_ammo_laser = 0;
+	g->spawn_ammo_tshells = 0;
+	g->spawn_ammo_missiles = 0;
 
 	g->loaded = 1;
 }
@@ -727,15 +754,16 @@ void bg3_spawn_player(bg3_base* base, int player)
 	players[player].normal.z = 1.0f;
 
 	players[player].laser_time = 0.0f;
+	players[player].laser_snd_ref = -1;
 
 	players[player].smoke_time = 0.0f;
 	players[player].spark_time = 0.0f;
 
 	players[player].firing = 0;
 
-	players[player].laser_ammo = LASER_START_AMMO;
-	players[player].tshell_ammo = TSHELL_START_AMMO;
-	players[player].missile_ammo = MISSILE_START_AMMO;
+	players[player].laser_ammo = base->game.spawn_ammo_laser;
+	players[player].tshell_ammo = base->game.spawn_ammo_tshells;
+	players[player].missile_ammo = base->game.spawn_ammo_missiles;
 
 	players[player].mgun_wait = 0.0f;
 	players[player].tshell_wait = 0.0f;
@@ -872,6 +900,14 @@ void bg3_create_explosion(bg3_base* base, xVector3f* pos)
 	xParticleSystemBurst(base->effects.expl_sparks_ps, &e, 32);
 	xParticleSystemBurst(base->effects.expl_smoke_ps, &e, 8);
 	//play sound
+
+	xSound3dSource src;
+	src.pos = *(ScePspFVector3*)pos;
+	src.vel.x = 0.0f;
+	src.vel.y = 0.0f;
+	src.vel.z = 0.0f;
+	src.radius = SOUND_RADIUS;
+	xSound3dPlay(base->resources.explosion_sound, &src, 0);
 }
 
 void bg3_ai_set_state(bg3_base* base, int player, int state)
@@ -922,7 +958,7 @@ void bg3_free_tshells(bg3_tshells* t)
 	}
 }
 
-void bg3_add_tshell(bg3_tshells* t, ScePspFVector3* p0, ScePspFVector3* p1)
+void bg3_add_tshell(bg3_tshells* t, bg3_base* base, ScePspFVector3* p0, ScePspFVector3* p1)
 {
 	if (t == NULL || p0 == NULL || p1 == NULL) return;
 	if (t->num >= t->max) return;
@@ -931,6 +967,14 @@ void bg3_add_tshell(bg3_tshells* t, ScePspFVector3* p0, ScePspFVector3* p1)
 	xVec3Sub((xVector3f*)&s->len, (xVector3f*)p1, (xVector3f*)p0);
 	s->time = HUGE_VAL;
 	t->num += 1;
+
+	xSound3dSource src;
+	src.pos = *p0;
+	src.vel.x = 0.0f;
+	src.vel.y = 0.0f;
+	src.vel.z = 0.0f;
+	src.radius = SOUND_RADIUS;
+	xSound3dPlay(base->resources.tshell_sound, &src, 0);
 }
 
 static void remove_tshell(bg3_tshells* t, int idx)
@@ -1019,7 +1063,7 @@ void bg3_free_bullets(bg3_bullets* b)
 	}
 }
 
-void bg3_add_bullet(bg3_bullets* b, int player, ScePspFVector3* pos, ScePspFVector3* vel)
+void bg3_add_bullet(bg3_bullets* b, bg3_base* base, int player, ScePspFVector3* pos, ScePspFVector3* vel)
 {
 	if (b == NULL || pos == NULL || vel == NULL) return;
 	if (b->num >= b->max) return;
@@ -1029,6 +1073,14 @@ void bg3_add_bullet(bg3_bullets* b, int player, ScePspFVector3* pos, ScePspFVect
 	s->vel = *vel;
 	s->time = HUGE_VAL;
 	b->num += 1;
+
+	xSound3dSource src;
+	src.pos = *pos;
+	src.vel.x = 0.0f;
+	src.vel.y = 0.0f;
+	src.vel.z = 0.0f;
+	src.radius = SOUND_RADIUS;
+	xSound3dPlay(base->resources.mgun_sound, &src, 0);
 }
 
 static void remove_bullet(bg3_bullets* b, int idx)
@@ -1169,7 +1221,7 @@ void bg3_free_missiles(bg3_missiles* m)
 	}
 }
 
-void bg3_add_missile(bg3_missiles* m, int player, ScePspFVector3* pos, ScePspFVector3* dir, ScePspFVector3* target)
+void bg3_add_missile(bg3_missiles* m, bg3_base* base, int player, ScePspFVector3* pos, ScePspFVector3* dir, ScePspFVector3* target)
 {
 	if (m == NULL || pos == NULL || dir == NULL || target == NULL) return;
 	if (m->num >= m->max) return;
@@ -1180,6 +1232,14 @@ void bg3_add_missile(bg3_missiles* m, int player, ScePspFVector3* pos, ScePspFVe
 	s->target = *target;
 	s->time = HUGE_VAL;
 	m->num += 1;
+
+	s->snd_src.pos = *pos;
+	s->snd_src.vel.x = 0.0f;
+	s->snd_src.vel.y = 0.0f;
+	s->snd_src.vel.z = 0.0f;
+	s->snd_src.radius = SOUND_RADIUS;
+	xSound3dPlay(base->resources.missile_launch_sound, &s->snd_src, 0);
+	s->snd_ref = xSound3dPlay(base->resources.missile_fly_sound, &s->snd_src, 1);
 }
 
 static void remove_missile(bg3_missiles* m, int idx)
@@ -1276,6 +1336,7 @@ void bg3_update_missiles(bg3_missiles* m, bg3_base* base, float dt)
 						//bg3_damage_player(j, MISSILE_SHIELD_DPS*MISSILE_WAIT, MISSILE_ARMOR_DPS*MISSILE_WAIT);
 						players[s->player].score += bg3_damage_area(base, s->player, (ScePspFVector3*)&p, MISSILE_DMG_INNER_RADIUS, MISSILE_DMG_OUTER_RADIUS, 0.5f*MISSILE_SHIELD_DPS*MISSILE_WAIT, 0.5f*MISSILE_ARMOR_DPS*MISSILE_WAIT);
 						bg3_create_explosion(base, &p);
+						xSoundSetState(s->snd_ref, X_SOUND_STOP);
 						remove_missile(m, i);
 						i -= 1;
 						break;
@@ -1294,6 +1355,7 @@ void bg3_update_missiles(bg3_missiles* m, bg3_base* base, float dt)
 					bg3_create_explosion(base, (xVector3f*)&new_pos);
 					//create scorchmark decal
 					bg3_add_decal(d, h, &new_pos);
+					xSoundSetState(s->snd_ref, X_SOUND_STOP);
 					remove_missile(m, i);
 					i -= 1;
 				}
@@ -1312,25 +1374,28 @@ void bg3_update_missiles(bg3_missiles* m, bg3_base* base, float dt)
 					s->time += dt;
 					if (s->time >= MISSILE_LIFE)
 					{
+						xSoundSetState(s->snd_ref, X_SOUND_STOP);
 						remove_missile(m, i);
 						i -= 1;
 					}
 				}
 			}
 		}
+		s->snd_src.pos = s->pos;
+		xVec3Scale((xVector3f*)&s->snd_src.vel, (xVector3f*)&s->dir, MISSILE_VELOCITY);
 	}
 }
 
 void bg3_draw_missiles(bg3_missiles* m, ScePspFMatrix4* view, float width)
 {
 	if (m == NULL || view == NULL) return;
-	xVector3f up_right = {0.5f*(view->x.x + view->y.x), 0.5f*(view->x.y + view->y.y), 0.5f*(view->x.z + view->y.z)};
+	xVector3f up_left = {-view->x.x + view->y.x, -view->x.y + view->y.y, -view->x.z + view->y.z};
 	sceGuDepthMask(GU_TRUE);
 	int i;
 	for (i = 0; i < m->num; i++)
 	{
 		missile* s = &m->missiles[m->stack[i]];
-		bg3_draw_sprite(&up_right, (xVector3f*)&s->pos, width);
+		bg3_draw_sprite(&up_left, (xVector3f*)&s->pos, width);
 	}
 	sceGuDepthMask(GU_FALSE);
 }
@@ -1439,6 +1504,11 @@ void bg3_update_powerups(bg3_powerups* p, bg3_base* base, float dt)
 							break;
 						}
 						//play sound, make effect
+						if (j == g->player && players[j].powerup_time <= 0.0f)
+						{
+							xSoundPlay(base->resources.powerup_sound);
+						}
+						players[j].powerup_time = POWERUP_EFFECT_TIME;
 						if (s->respawn)
 						{
 							s->respawn = 2;
@@ -1466,8 +1536,9 @@ void bg3_update_powerups(bg3_powerups* p, bg3_base* base, float dt)
 					//particle burst
 					xParticleEmitter e;
 					e.particle_pos = *(xVector3f*)&s->pos;
+					e.particle_pos.z -= 0.5f;
 					e.new_velocity = 0;
-					xParticleSystemBurst((s->type == BG3_POWERUP_ARMOR ? base->effects.health_ps : base->effects.powerup_ps), &e, 1);
+					xParticleSystemBurst(base->effects.powerup_ps, &e, 1);
 				}
 			}
 
@@ -1488,27 +1559,33 @@ void bg3_update_powerups(bg3_powerups* p, bg3_base* base, float dt)
 	}
 }
 
-void bg3_draw_powerups(bg3_powerups* p, bg3_base* base)
+void bg3_draw_powerups(bg3_powerups* p, bg3_base* base, ScePspFMatrix4* view)
 {
 	if (p == NULL || base == NULL) return;
+	xVector3f up_left = {-view->x.x + view->y.x, -view->x.y + view->y.y, -view->x.z + view->y.z};
 	int i;
 	for (i = 0; i < p->num; i++)
 	{
 		powerup* s = &p->powerups[p->stack[i]];
-		switch (s->type)
+		if (s->respawn != 2)
 		{
-		case BG3_POWERUP_ARMOR:
-			//draw armor
-			break;
-		case BG3_POWERUP_LASER:
-			//draw armor
-			break;
-		case BG3_POWERUP_TSHELL:
-			//draw armor
-			break;
-		case BG3_POWERUP_MISSILE:
-			//draw armor
-			break;
+			switch (s->type)
+			{
+			case BG3_POWERUP_ARMOR:
+				xTexSetImage(base->resources.shield_icon);
+				break;
+			case BG3_POWERUP_LASER:
+				xTexSetImage(base->resources.laser_icon);
+				break;
+			case BG3_POWERUP_TSHELL:
+				xTexSetImage(base->resources.tshell_icon);
+				break;
+			case BG3_POWERUP_MISSILE:
+				xTexSetImage(base->resources.missile_icon);
+				break;
+			}
+			bg3_draw_sprite(&up_left, (xVector3f*)&s->pos, 1.0f);
 		}
+
 	}
 }

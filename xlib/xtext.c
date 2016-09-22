@@ -132,12 +132,13 @@ xBitmapFont* xTextLoadFont(xTexture* tex, char* widths_filename)
     }
     FILE* file = fopen(widths_filename, "rb");
     if (!file)
-    {
+	{
         copy_widths(font);
-        return font;
+		goto end;
     }
     fread(font->widths, 256*sizeof(u16), 1, file);
     fclose(file);
+end:
     if (!x_current_font)
     {
         xTextSetFont(font);
@@ -224,9 +225,9 @@ int xTextPrint(int x, int y, char* text, int num)
     if (x_font_align == X_ALIGN_CENTER) pos -= 0.5f*text_length;
     else if (x_font_align == X_ALIGN_RIGHT) pos -= text_length;
     
-    u16 char_width = x_current_font->texture->width >> 4;
+    u16 char_width = x_current_font->texture->width/16;
 
-    Text_Vert* vertices = (Text_Vert*)sceGuGetMemory((num<<1)*sizeof(Text_Vert));
+    Text_Vert* vertices = (Text_Vert*)sceGuGetMemory(2*num*sizeof(Text_Vert));
     Text_Vert* vert_ptr = vertices;
     int i = 0;
     while (/* *text != '\0' && num >= 0 */ i < num)
@@ -257,14 +258,13 @@ int xTextPrint(int x, int y, char* text, int num)
         i += 1;
     }
 
-    xGuTexMode(X_TFX_MODULATE, 1);
     xTexSetImage(x_current_font->texture);
     xGuSaveStates();
     sceGuEnable(GU_TEXTURE_2D);
     sceGuEnable(GU_BLEND);
     sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
     sceGuDisable(GU_DEPTH_TEST);
-    sceGuDrawArray(GU_SPRITES, Text_Vert_vtype|GU_TRANSFORM_2D, num<<1, 0, vertices);
+    sceGuDrawArray(GU_SPRITES, Text_Vert_vtype|GU_TRANSFORM_2D, 2*num, 0, vertices);
     xGuLoadStates();
 
     return (int)text_length;

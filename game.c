@@ -5,6 +5,7 @@
 #include "xlib/xtime.h"
 #include "xlib/xctrl.h"
 #include "xlib/xgraphics.h"
+#include "xlib/xsound.h"
 
 #include "game.h"
 
@@ -106,18 +107,6 @@ void bg3_game_process_player_input(bg3_base* base, float dt)
 				//p->cam_dir.z += 5.0f*xCtrlAnalogY()*dt;
 				p->cam_pitch += (base->inverted ? -1 : 1) * TANK_TURN_Y * -xCtrlAnalogY() * dt;
 			}
-#ifdef X_DEBUG
-			if (xCtrlTap(PSP_CTRL_UP))
-			{
-				g->player += 1;
-				if (g->player >= g->num_players) g->player = 0;
-			}
-			if (xCtrlTap(PSP_CTRL_DOWN))
-			{
-				g->player -= 1;
-				if (g->player < 0) g->player = g->num_players-1;
-			}
-#endif
 			if (xCtrlTap(PSP_CTRL_RIGHT))
 			{
 				do {
@@ -160,17 +149,31 @@ void bg3_game_process_player_input(bg3_base* base, float dt)
 			{
 				p->firing = 1;
 			}
-			if (xCtrlTap(PSP_CTRL_START))
-			{
-				g->paused = 1;
-			}
 		}
+		if (xCtrlTap(PSP_CTRL_START))
+		{
+			g->paused = 1;
+			xSoundSetStateAll(X_SOUND_PAUSE, 0);
+		}
+#ifdef X_DEBUG
+		if (xCtrlTap(PSP_CTRL_UP))
+		{
+			g->player += 1;
+			if (g->player >= g->num_players) g->player = 0;
+		}
+		if (xCtrlTap(PSP_CTRL_DOWN))
+		{
+			g->player -= 1;
+			if (g->player < 0) g->player = g->num_players-1;
+		}
+#endif
 	}
 	else
 	{
 		if (xCtrlTap(PSP_CTRL_START))
 		{
 			g->paused = 0;
+			xSoundSetStateAll(X_SOUND_PLAY, 0);
 		}
 		if (xCtrlTap(PSP_CTRL_TRIANGLE))
 		{
@@ -755,6 +758,16 @@ void bg3_game_update_players(bg3_base* base, float dt)
 					xParticleSystemBurst(effects->sparks_ps, &e, 5);
 				}
 			}
+
+			if (players[i].powerup_time > 0.0f)
+			{
+				players[i].powerup_time -= dt;
+				xParticleEmitter e;
+				e.particle_pos = players[i].e_pos;
+				e.new_velocity = 0;
+				xParticleSystemBurst(effects->powerup_pickup_ps, &e, 1);
+			}
+
 			ScePspFVector3 normal;
 			for (j = 0; j < 4; j++)
 			{
@@ -1018,7 +1031,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 						ScePspFVector3 rand_dir = *(ScePspFVector3*)&vel;
 						x_rotatez(&rand_dir, x_randf(-RAND_ANGLE, RAND_ANGLE));
 						x_rotatex(&rand_dir, x_randf(-RAND_ANGLE, RAND_ANGLE));
-						bg3_add_bullet(g->bullets, i, (ScePspFVector3*)&mat.w, &rand_dir);
+						bg3_add_bullet(g->bullets, base, i, (ScePspFVector3*)&mat.w, &rand_dir);
 						xParticleEmitter e;
 						e.particle_pos = *(xVector3f*)&mat.w;
 						e.new_velocity = 0;
@@ -1070,7 +1083,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 								xParticleEmitter e;
 								e.particle_pos = *(xVector3f*)&hit;
 								e.new_velocity = 0;
-								xParticleSystemBurst(effects->scramble_ps, &e, 1);
+								xParticleSystemBurst(effects->lasermark_ps, &e, 1);
 							}
 							else if (t_cam < CAM_RAY_DIST || t0 < 1.0f)
 							{
@@ -1078,7 +1091,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 								xParticleEmitter e;
 								e.particle_pos = *(xVector3f*)&hit;
 								e.new_velocity = 0;
-								xParticleSystemBurst(effects->scramble_ps, &e, 1);
+								xParticleSystemBurst(effects->lasermark_ps, &e, 1);
 							}
 							else
 							{
@@ -1115,10 +1128,18 @@ void bg3_game_update_players(bg3_base* base, float dt)
 								gumTranslate(&mat, &mv);
 								t += LASER_STEP;
 							}
-							//play sound
 							players[i].laser_ammo -= dt;
 							if (players[i].laser_ammo < 0.0f)
 								players[i].laser_ammo = 0.0f;
+
+							//play sound
+							players[i].laser_snd_src.pos = players[i].laser_start;
+							players[i].laser_snd_src.vel = players[i].vel;
+							players[i].laser_snd_src.radius = SOUND_RADIUS;
+							if (players[i].laser_snd_ref < 0)
+							{
+								players[i].laser_snd_ref = xSound3dPlay(resources->laser_sound, &players[i].laser_snd_src, 1);
+							}
 						}
 					}
 					break;
@@ -1166,7 +1187,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 								bg3_add_decal(effects->scorch_decals, &map->hmp, &hit);
 							}
 							//add shell, damage enemies
-							bg3_add_tshell(g->tshells, (ScePspFVector3*)&mat.w, &hit);
+							bg3_add_tshell(g->tshells, base, (ScePspFVector3*)&mat.w, &hit);
 							players[i].score += bg3_damage_area(base, i, &hit, TSHELL_DMG_INNER_RADIUS, TSHELL_DMG_OUTER_RADIUS, TSHELL_SHIELD_DPS*TSHELL_WAIT, TSHELL_ARMOR_DPS*TSHELL_WAIT);
 							bg3_create_explosion(base, (xVector3f*)&hit);
 
@@ -1205,7 +1226,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 							ScePspFVector3 dir = *(ScePspFVector3*)&players[i].top_mat.z;
 							ScePspFMatrix4 mat = players[i].top_mat;
 							gumTranslate(&mat, &base->missile_offset);
-							bg3_add_missile(g->missiles, i, (ScePspFVector3*)&mat.w, &dir, &shootat);
+							bg3_add_missile(g->missiles, base, i, (ScePspFVector3*)&mat.w, &dir, &shootat);
 							//play sound
 							players[i].missile_ammo -= 1;
 							if (players[i].missile_ammo < 0)
@@ -1215,7 +1236,7 @@ void bg3_game_update_players(bg3_base* base, float dt)
 							{
 								ScePspFVector3 move = {-2*base->missile_offset.x, 0.0f, 0.0f};
 								gumTranslate(&mat, &move);
-								bg3_add_missile(g->missiles, i, (ScePspFVector3*)&mat.w, &dir, &shootat);
+								bg3_add_missile(g->missiles, base, i, (ScePspFVector3*)&mat.w, &dir, &shootat);
 								//play sound
 								players[i].missile_ammo -= 1;
 								if (players[i].missile_ammo < 0)
@@ -1228,11 +1249,6 @@ void bg3_game_update_players(bg3_base* base, float dt)
 					break;
 				}
 			}
-			if (!players[i].firing || players[i].primary != BG3_LASER)
-			{
-				//players[i].laser_hit_last = 0;
-				players[i].laser_time = 0.0f;
-			}
 		}
 		else
 		{
@@ -1242,6 +1258,17 @@ void bg3_game_update_players(bg3_base* base, float dt)
 			{
 				//respawn
 				bg3_spawn_player(base, i);
+			}
+		}
+
+		if (!players[i].firing || players[i].primary != BG3_LASER)
+		{
+			//players[i].laser_hit_last = 0;
+			players[i].laser_time = 0.0f;
+			if (players[i].laser_snd_ref >= 0)
+			{
+				xSoundSetState(players[i].laser_snd_ref, X_SOUND_STOP);
+				players[i].laser_snd_ref = -1;
 			}
 		}
 	}
@@ -1271,7 +1298,7 @@ void bg3_game_update_render(bg3_base* base, float dt)
 		xParticleSystemUpdate(effects->expl_smoke_ps, dt);
 		xParticleSystemUpdate(effects->sparks_ps, dt);
 		xParticleSystemUpdate(effects->smoke_ps, dt);
-		xParticleSystemUpdate(effects->scramble_ps, dt);
+		xParticleSystemUpdate(effects->lasermark_ps, dt);
 		xParticleSystemUpdate(effects->recharge_ps, dt);
 		effects->wind_ps->pos = *(xVector3f*)&players[g->player].pos;
 		xVec3Sub(&effects->wind_ps->pos, (xVector3f*)&players[g->player].pos, &effects->wind_ps->vel);
@@ -1279,9 +1306,9 @@ void bg3_game_update_render(bg3_base* base, float dt)
 		xParticleSystemUpdate(effects->wind_ps, dt);
 		xParticleSystemUpdate(effects->laser_ps, dt);
 		xParticleSystemUpdate(effects->muzzleflash_ps, dt);
-		xParticleSystemUpdate(effects->health_ps, dt);
 		xParticleSystemUpdate(effects->powerup_ps, dt);
 		xParticleSystemUpdate(effects->gun_smoke_ps, dt);
+		xParticleSystemUpdate(effects->powerup_pickup_ps, dt);
 	}
 
 
@@ -1306,12 +1333,8 @@ void bg3_game_update_render(bg3_base* base, float dt)
 		sceGumLoadMatrix(&view);
 		sceGumFastInverse();
 
-		/*
-		listener.right = *(xVector3f*)&right;
-		listener.pos = *(xVector3f*)&players[g->player].cam_orig;
-		listener.vel = *(xVector3f*)&players[g->player].vel;
-		xWav3dUpdateSounds();
-		*/
+		xSound3dSetListener(&view, &players[g->player].vel);
+		xSound3dUpdate();
 	}
 
 	sceGumMatrixMode(GU_MODEL);
@@ -1494,8 +1517,6 @@ void bg3_game_update_render(bg3_base* base, float dt)
 
 	sceGumLoadIdentity();
 
-	bg3_draw_powerups(g->powerups, base);
-
 	sceGuEnable(GU_BLEND);
 	sceGuEnable(GU_TEXTURE_2D);
 
@@ -1506,6 +1527,25 @@ void bg3_game_update_render(bg3_base* base, float dt)
 	xTexSetImage(resources->scorch_tex);
 	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_MUL_COLOR, g->fog_color));
 	bg3_draw_decals(effects->scorch_decals);
+
+	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
+	xTexSetImage(resources->lasermark_tex);
+	xParticleSystemRender(effects->lasermark_ps, &view);
+
+	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
+	xTexSetImage(resources->dirt_particle_tex);
+	xParticleSystemRender(effects->dirt_ps, &view);
+
+	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
+	xTexSetImage(resources->dirt_particle_tex);
+	xParticleSystemRender(effects->dust_ps, &view);
+
+	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
+	xTexSetImage(resources->flash_tex);
+	xParticleSystemRender(effects->powerup_ps, &view);
+
+	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_AVERAGE_WITH_ALPHA, g->fog_color));
+	bg3_draw_powerups(g->powerups, base, &view);
 
 	sceGumLoadIdentity();
 
@@ -1540,26 +1580,6 @@ void bg3_game_update_render(bg3_base* base, float dt)
 	sceGuEnable(GU_TEXTURE_2D);
 	sceGuEnable(GU_BLEND);
 	sceGuColor(0xffffffff);
-
-	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
-	xTexSetImage(resources->scramble_tex);
-	xParticleSystemRender(effects->scramble_ps, &view);
-
-	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
-	xTexSetImage(resources->dirt_particle_tex);
-	xParticleSystemRender(effects->dirt_ps, &view);
-
-	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
-	xTexSetImage(resources->dirt_particle_tex);
-	xParticleSystemRender(effects->dust_ps, &view);
-
-	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_AVERAGE_WITH_ALPHA, g->fog_color));
-	xTexSetImage(resources->health_tex);
-	xParticleSystemRender(effects->health_ps, &view);
-
-	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
-	xTexSetImage(resources->flash_tex);
-	xParticleSystemRender(effects->powerup_ps, &view);
 
 	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
 	//xTexSetImage(bullet_tex);
@@ -1643,6 +1663,10 @@ void bg3_game_update_render(bg3_base* base, float dt)
 	xParticleSystemRender(effects->recharge_ps, &view);
 
 	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
+	xTexSetImage(resources->flash_tex);
+	xParticleSystemRender(effects->powerup_pickup_ps, &view);
+
+	sceGuFog(g->fog_near, g->fog_far, bg3_set_blend(BLEND_ADD_WITH_ALPHA, g->fog_color));
 	xTexSetImage(resources->dirt_particle_tex);
 	xParticleSystemRender(effects->wind_ps, &view);
 
@@ -1658,9 +1682,9 @@ void bg3_game_update_render(bg3_base* base, float dt)
 
 		xTextSetAlign(X_ALIGN_CENTER);
 		int y = 100;
-		xTextPrintf(X_SCREEN_WIDTH/2, y, "Press Triangle to exit to menu.");
+		bg3_print_text(X_SCREEN_WIDTH/2, y, "Press Triangle to exit to menu.");
 		y += 15;
-		xTextPrintf(X_SCREEN_WIDTH/2, y, "Score: %i", players[g->player].score);
+		bg3_print_text(X_SCREEN_WIDTH/2, y, "Score: %i", players[g->player].score);
 		xTextSetAlign(X_ALIGN_LEFT);
 
 		if (g->exit)
@@ -1705,58 +1729,68 @@ void bg3_game_update_render(bg3_base* base, float dt)
 
 #define ICON_START 350
 #define ICON_WIDTH 32
-#define ICON_COLOR0 0x20dddddd
-#define ICON_COLOR1 0x7f7f7f7f
+#define ICON_FILL 0x7f7f7f7f
+#define ICON_COLOR0 0xffffffff
+#define ICON_COLOR1 0xff303030
 #define ICON_OUTLINE 0xff000000
+#define ICON_PRIMARY 0xff00c6ff
 
 		sceGuEnable(GU_BLEND);
 		sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
 
 		int x = ICON_START;
 		int y = 0;
-		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR0);
-		x += ICON_WIDTH;
-		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR0);
-		x += ICON_WIDTH;
-		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR0);
-		x += ICON_WIDTH;
-		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR0);
-		x = ICON_START;
-		y = 0;
+		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
+		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
 		if (players[g->player].weapons & (1<<BG3_MACHINE_GUN))
-			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR1);
+			sceGuColor(ICON_COLOR0);
+		else
+			sceGuColor(ICON_COLOR1);
+		bg3_draw_tex2(resources->mgun_icon, x, y, ICON_WIDTH, ICON_WIDTH);
 		x += ICON_WIDTH;
+		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
+		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
 		if (players[g->player].weapons & (1<<BG3_LASER))
-			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR1);
+			sceGuColor(ICON_COLOR0);
+		else
+			sceGuColor(ICON_COLOR1);
+		bg3_draw_tex2(resources->laser_icon, x, y, ICON_WIDTH, ICON_WIDTH);
 		x += ICON_WIDTH;
+		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
+		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
 		if (players[g->player].weapons & (1<<BG3_TANK_SHELL))
-			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR1);
+			sceGuColor(ICON_COLOR0);
+		else
+			sceGuColor(ICON_COLOR1);
+		bg3_draw_tex2(resources->tshell_icon, x, y, ICON_WIDTH, ICON_WIDTH);
 		x += ICON_WIDTH;
+		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_FILL);
+		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
 		if (players[g->player].weapons & (1<<BG3_MISSILES))
-			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR1);
-		x = ICON_START-1;
-		y = 0-1;
-		bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
-		x += ICON_WIDTH;
-		bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
-		x += ICON_WIDTH;
-		bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
-		x += ICON_WIDTH;
-		bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+			sceGuColor(ICON_COLOR0);
+		else
+			sceGuColor(ICON_COLOR1);
+		bg3_draw_tex2(resources->missile_icon, x, y, ICON_WIDTH, ICON_WIDTH);
 
-		x = ICON_START-1;
-		y = 0-1;
-		if (players[g->player].primary == BG3_MACHINE_GUN)
-			bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, 0xff0000af);
-		x += ICON_WIDTH;
-		if (players[g->player].primary == BG3_LASER)
-			bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, 0xff0000af);
-		x += ICON_WIDTH;
-		if (players[g->player].primary == BG3_TANK_SHELL)
-			bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, 0xff0000af);
-		x += ICON_WIDTH;
-		if (players[g->player].primary == BG3_MISSILES)
-			bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, 0xff0000af);
+		sceGuColor(0xffffffff);
+
+		switch (players[g->player].primary)
+		{
+		case BG3_MACHINE_GUN:
+			x = ICON_START + 0*ICON_WIDTH;
+			break;
+		case BG3_LASER:
+			x = ICON_START + 1*ICON_WIDTH;
+			break;
+		case BG3_TANK_SHELL:
+			x = ICON_START + 2*ICON_WIDTH;
+			break;
+		case BG3_MISSILES:
+			x = ICON_START + 3*ICON_WIDTH;
+			break;
+		}
+		y = 0;
+		bg3_draw_outline(x-1, y-1, ICON_WIDTH, ICON_WIDTH+1, ICON_PRIMARY);
 
 		sceGuDisable(GU_BLEND);
 
@@ -1766,30 +1800,30 @@ void bg3_game_update_render(bg3_base* base, float dt)
 		switch (players[g->player].primary)
 		{
 		case BG3_MACHINE_GUN:
-			xTextPrintf(x, y, "Machine Gun");
-			xTextPrintf(x, y+15, "oo");
+			bg3_print_text(x, y, "Machine Gun");
+			bg3_print_text(x, y+15, "oo");
 			break;
 		case BG3_LASER:
-			xTextPrintf(x, y, "Laser");
-			xTextPrintf(x, y+15, "%.1f", players[g->player].laser_ammo);
+			bg3_print_text(x, y, "Laser");
+			bg3_print_text(x, y+15, "%.1f", players[g->player].laser_ammo);
 			break;
 		case BG3_TANK_SHELL:
-			xTextPrintf(x, y, "Tank Shells");
-			xTextPrintf(x, y+15, "%i", players[g->player].tshell_ammo);
+			bg3_print_text(x, y, "Tank Shells");
+			bg3_print_text(x, y+15, "%i", players[g->player].tshell_ammo);
 			break;
 		case BG3_MISSILES:
-			xTextPrintf(x, y, "Missiles");
-			xTextPrintf(x, y+15, "%i", players[g->player].missile_ammo);
+			bg3_print_text(x, y, "Missiles");
+			bg3_print_text(x, y+15, "%i", players[g->player].missile_ammo);
 			break;
 		default:
-			xTextPrintf(x, y, "Unknown");
+			bg3_print_text(x, y, "Unknown");
 			break;
 		}
 	}
 
 	xTextSetAlign(X_ALIGN_LEFT);
 #ifdef X_DEBUG
-	xTextPrintf(1, X_SCREEN_HEIGHT - 15, "FPS: %f", 1.0f/dt);
+	bg3_print_text(1, X_SCREEN_HEIGHT - 15, "FPS: %f", 1.0f/dt);
 #endif
 
 
@@ -1801,7 +1835,7 @@ void bg3_game_update_render(bg3_base* base, float dt)
 	//sceGuDisable(GU_BLEND);
 	sceGuEnable(GU_BLEND);
 	sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
-	//bg3_draw_tex(resources->health_tex, 0, 0);
+	//bg3_draw_tex(resources->shield_icon, 0, 0);
 
 	xGuFrameEnd();
 }
@@ -1812,6 +1846,11 @@ void bg3_game_update_render(bg3_base* base, float dt)
 void bg3_game_loop(bg3_base* base)
 {
 	if (base == NULL) return;
+	int i;
+	for (i = 0; i < base->game.num_players; i++)
+	{
+		bg3_spawn_player(base, i);
+	}
 	dust_time = 0.0f;
 	lod_time = LOD_DELAY;
 	float update_time = 0.0f;

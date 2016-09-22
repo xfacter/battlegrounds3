@@ -28,7 +28,8 @@ int xHeightmapLoad(xHeightmap* h, char* filename, int width, float tile_scale, f
     h->vertices = (hmap_vertex*)x_malloc(width*height*sizeof(hmap_vertex));
     h->indices_static = (u16*)x_malloc(2*width*sizeof(u16));
     if (!h->vertices || !h->indices_static)
-    {
+	{
+		fclose(file);
         xHeightmapFree(h);
         return 1;
     }

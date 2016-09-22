@@ -1,9 +1,11 @@
+#include <stdarg.h>
 #include <math.h>
 #include <pspgu.h>
 #include <pspgum.h>
 #include "xlib/xmem.h"
 #include "xlib/xmath.h"
 #include "xlib/xgraphics.h"
+#include "xlib/xtext.h"
 
 #include "bg3_util.h"
 
@@ -237,6 +239,20 @@ u32 bg3_set_blend(int mode, u32 fog)
 	return fog;
 }
 
+void bg3_print_text(int x, int y, char* fmt, ...)
+{
+	char buffer[256];
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(buffer, 256, fmt, ap);
+	va_end(ap);
+	xTextSetColor(GU_COLOR(0.0f, 0.0f, 0.0f, 1.0f));
+	xTextPrintf(x-1, y-1, buffer);
+	xTextSetColor(GU_COLOR(1.0f, 1.0f, 1.0f, 1.0f));
+	xTextPrintf(x, y, buffer);
+	xTextSetColor(0xffffffff);
+}
+
 void bg3_draw_outline(int x, int y, int w, int h, u32 c)
 {
 	CVertex2D* vertices = (CVertex2D*)sceGuGetMemory(5*sizeof(CVertex2D));
@@ -292,6 +308,12 @@ void bg3_draw_tex(xTexture* tex, int x, int y)
 	xTexDraw(tex, x, y, tex->width, tex->height, 0, 0, tex->width, tex->height);
 }
 
+void bg3_draw_tex2(xTexture* tex, int x, int y, int w, int h)
+{
+	if (tex == NULL) return;
+	xTexDraw(tex, x, y, w, h, 0, 0, tex->width, tex->height);
+}
+
 void bg3_draw_tex_center(xTexture* tex, int x, int y)
 {
 	if (tex == NULL) return;
@@ -306,21 +328,23 @@ typedef struct {
 
 #define sprite_vertex_vtype GU_TEXTURE_8BIT/*|GU_COLOR_8888*/|GU_VERTEX_32BITF
 
-void bg3_draw_sprite(xVector3f* up_right, xVector3f* pos, float size)
+void bg3_draw_sprite(xVector3f* up_left, xVector3f* pos, float size)
 {
 	sprite_vertex* vertices = (sprite_vertex*)sceGuGetMemory(2*sizeof(sprite_vertex));
+	xVector3f temp;
+	xVec3Scale(&temp, up_left, 0.5f*size);
 	vertices[0].u = 0;
-	vertices[0].v = 0;
+	vertices[0].v = 127;
 	//vertices[i*2+0].c = color32;
-	vertices[0].x = pos->x - size*up_right->x;
-	vertices[0].y = pos->y - size*up_right->y;
-	vertices[0].z = pos->z - size*up_right->z;
+	vertices[0].x = pos->x + temp.x;
+	vertices[0].y = pos->y + temp.y;
+	vertices[0].z = pos->z + temp.z;
 	vertices[1].u = 127;
-	vertices[1].v = 127;
+	vertices[1].v = 0;
 	//vertices[i*2+1].c = color32;
-	vertices[1].x = pos->x + size*up_right->x;
-	vertices[1].y = pos->y + size*up_right->y;
-	vertices[1].z = pos->z + size*up_right->z;
+	vertices[1].x = pos->x - temp.x;
+	vertices[1].y = pos->y - temp.y;
+	vertices[1].z = pos->z - temp.z;
 	sceGumDrawArray(GU_SPRITES, sprite_vertex_vtype|GU_TRANSFORM_3D, 2, 0, vertices);
 }
 
@@ -365,13 +389,13 @@ void bg3_draw_quad_billboard(xVector3f* cam, xVector3f* pos, xVector3f* len, flo
 
 bg3_decals* bg3_create_decals(int num, float size)
 {
-	bg3_decals* d = x_malloc(sizeof(bg3_decals));
+	bg3_decals* d = (bg3_decals*)x_malloc(sizeof(bg3_decals));
 	if (d == NULL) return NULL;
 	d->max_decals = num;
 	d->num_decals = 0;
 	d->index = 0;
 	d->size = size;
-	d->decals = x_malloc(num*sizeof(decal_geom));
+	d->decals = (decal_geom*)x_malloc(num*sizeof(decal_geom));
 	if (d->decals == NULL)
 	{
 		bg3_free_decals(d);
@@ -397,7 +421,7 @@ void bg3_add_decal(bg3_decals* d, xHeightmap* h, ScePspFVector3* p)
 	if (d == NULL || h == NULL || p == NULL) return;
 	xVector3f right, fwd, up;
 	xHeightmapGetNormal(h, (ScePspFVector3*)&up, p->x, p->y);
-	if (up.z == 1.0f)
+	if (up.z >= 1.0f - X_EPSILON)
 	{
 		xVec3Set(&right, 1.0f, 0.0f, 0.0f);
 		xVec3Set(&fwd, 0.0f, 1.0f, 0.0f);

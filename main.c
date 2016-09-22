@@ -8,7 +8,7 @@
 #include "xlib/xctrl.h"
 #include "xlib/xtime.h"
 #include "xlib/xgraphics.h"
-#include "xlib/xwav.h"
+#include "xlib/xsound.h"
 #include "xlib/xtexture.h"
 #include "xlib/xmath.h"
 #include "xlib/xtext.h"
@@ -38,13 +38,17 @@ int xMain()
 	xGuEnable(X_DITHER_SMOOTH);
 	//xGuEnable(X_PSEUDO_AA);
 	sceGuColor(0xffffffff);
-	xGuTexMode(GU_TFX_MODULATE, 0);
+	xGuTexMode(GU_TFX_MODULATE, 1);
 	sceGuEnable(GU_TEXTURE_2D);
 	xGuTexFilter(X_BILINEAR);
 
 	sceGuEnable(GU_LIGHTING);
 	sceGuEnable(GU_LIGHT0);
 
+	xSoundInit(32);
+	xSound3dSpeedOfSound(100.0f);
+
+#ifndef X_DEBUG
 	xTexture* logo = xTexLoadTGA("./data/dashhacks.tga", 0, 0);
 
 	int stage = 1;
@@ -94,6 +98,7 @@ int xMain()
 	xGuDisable(X_WAIT_VBLANK);
 
 	xTexFree(logo);
+#endif
 
 	xTexture* font_tex = xTexLoadTGA("./data/font.tga", 0, X_TEX_TOP_IN_VRAM|X_TEX_GRAY_TO_ALPHA);
 	xBitmapFont* font = xTextLoadFont(font_tex, "./data/width.fw");
@@ -111,7 +116,7 @@ int xMain()
 	bg3_base_load_game(base, 1);
 	if (!base->game.loaded) return 1;
 	*/
-    
+
 #if 0
 	xWavInit(16);
 	xWav* bullet_wav = xWavLoad("./data/bullet.wav");
@@ -131,7 +136,7 @@ int xMain()
 #endif
 
 	//void* memry = x_malloc(20*1024*1024);
-    
+
     while(xRunning())
     {
 		switch (base->state)
@@ -152,6 +157,9 @@ int xMain()
 	bg3_destroy_base(base);
 	xTexFree(font_tex);
 	xTextFreeFont(font);
+
+	xGuEnd();
+	xSoundEnd();
 
 	sceKernelExitGame();
     return 0;

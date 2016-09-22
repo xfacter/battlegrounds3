@@ -46,15 +46,19 @@ float bg3_ray_ellipsoid_collision(ScePspFMatrix3* inverse_matrix, xVector3f* pos
 
 u32 bg3_set_blend(int mode, u32 fog);
 
+void bg3_print_text(int x, int y, char* fmt, ...);
+
 void bg3_draw_outline(int x, int y, int w, int h, u32 c);
 
 void bg3_draw_rect(int x, int y, int w, int h, u32 c);
 
 void bg3_draw_tex(xTexture* tex, int x, int y);
 
+void bg3_draw_tex2(xTexture* tex, int x, int y, int w, int h);
+
 void bg3_draw_tex_center(xTexture* tex, int x, int y);
 
-void bg3_draw_sprite(xVector3f* up_right, xVector3f* pos, float size);
+void bg3_draw_sprite(xVector3f* up_left, xVector3f* pos, float size);
 
 void bg3_draw_quad_billboard(xVector3f* cam, xVector3f* pos, xVector3f* len, float h0, float h1, u32 c0, u32 c1);
 

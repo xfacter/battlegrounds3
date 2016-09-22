@@ -13,6 +13,7 @@ extern "C" {
 #define X_PARTICLE_POINTS       (3)
 
 /* TODO:
+	- particle trails
 	- rotation
 	- radial movement -- theta, r, omega, alpha -- rotates about axis using a rotation/position matrix
 */

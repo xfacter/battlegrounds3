@@ -33,7 +33,7 @@
 //#define X_TEX_PNG
 //#define X_TEX_BMP
 
-#define X_WAV_CHANNEL 0
+#define X_SOUND_CHANNEL 0
 
 #define X_MD2_SOFTWARE
 //#define X_MD2_HARDWARE

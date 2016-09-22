@@ -1,6 +1,10 @@
 #ifndef __X_HEIGHTMAP__
 #define __X_HEIGHTMAP__
 
+/* TODO:
+	change to a better OO design...
+*/
+
 #include "xconfig.h"
 
 #ifdef __cplusplus
