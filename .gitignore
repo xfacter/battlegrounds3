@@ -1,0 +1,6 @@
+*.o
+*.prx
+*.elf
+*.PBP
+*.SFO
+xlog.txt

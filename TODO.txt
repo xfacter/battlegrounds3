@@ -1,0 +1,89 @@
+PRIORITIES
+	remove fps
+	add "PSP-Hacks.com Homebrew Idol 2" to splash
+	fix slowdown
+	2. reduce A* map size
+	4. sound
+	5. achievements?
+
+may want to look up:
+	- quake physics
+
+things i still need
+	- map format/loading
+	- AI
+	- sound effects
+	- a menu...
+	- radar
+	- better health display
+	- swirly particles beneath the tanks
+	- HUD graphics for weapons, etc
+	- make decals conform to terrain
+	- gameplay stuff
+		+ xp system for unlocking stuff?
+		+ CTF, other types
+		+ scoring system
+
+unlocks could include
+	- increased special weapon capacity
+	- special skins
+	- special abilities
+	- new maps
+	- new base modes
+	- new tank(s)..?
+	- hmm
+
+
+TODO
+	- Redo heightmaps as Geomipmaps with quadtree frustum culling
+	- Redo map->hmp intersection functions w/ quadtrees
+	- Fix/Redo 3D sound (openAL)
+	//- Change shield effect to ellipsoid
+	- Change spherical collision to elliptical/cylindrical
+	- Optimize shadows/tanks
+	- Fix/Redo OBJ library (use individual vertex structures for each format)
+	- Add swirling particles to ground beneath tanks (triEngine?)
+	- Optimize utility functions/loops (create structure for lists -- see bullets)
+	- Organize code -- add state machine
+	- (Maybe) Redo physics
+
+TODO:
+	shield effect - small section of sphere, grows and fades from collision point of ellipsoidal shield, normal is calculated spherically
+	for physics - move players on xy plane, slide up if collision
+	add frustum culling to map->hmp map->hmp_lod and particle systems
+	redo map->hmp map->hmp_lod: new way will have a block drawer, allocates memory in display list for every block, sets up new verts for every block, 
+		just moves indices at the edge to the bottom right of the seam-block to accommodate for seams (http://www.3dtechdev.com/images/lodimage3.png)
+		also frustum cull
+	redo physics so it works in all three dimensions instead of just 2
+	add line sprites to particle engine
+	remove the default crap from xtext
+	add push/pop levels to xGuLoad/SaveStates
+	add custom state to flip culling
+	make cache for mipmap generation (see triEngine)
+	3d sound lib
+	fix friction/movement
+
+gameplay v1
+	tank stats:
+		shields - first line of defense, regenerates after a time of no damage taken
+		armor - second line of defense, does not regenerate
+		heat - builds up when weapons are fired, or when enemy uses heat-building weapon on you,
+			once it reaches max, if players does not allow cool down, he will DIE!! eventually.
+			warnings include screen fading to red and severe motion blur (too hot!)
+	primary weapons (rtrigger), each have own ammo count except machine gun (default weapon), has infinite:
+		machine gun - rapid fire, low damage per shot
+		lasers - continuous fire, low damage, causes gradual heat build up in enemy
+		tank shell - slow rate of fire, high explosive damage per shot
+		gauss round - slow rate of fire, does low amount of damage to shields, large amount of damage to armor
+		missiles - medium rate of fire, lock on, medium damage
+	secondary weapons (ltrigger), each use fuel from a secondary bar at different rates, which recharges, cannot use if fuel reaches zero until recharges to 75%:
+		boost - provides a very short burst of speed
+		shields - provides a very short boost in shield power
+		flamethrower - increases heat on target
+		scope - zoom in for greater range/accuracy
+
+gameplay v2
+	machine gun - overall average weapon. tanks start with this
+	lasers - good vs shields
+	tank shells - good vs armor
+	missiles - better overall weapon. seeks nearest target, takes some skill
