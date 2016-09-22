@@ -2,13 +2,6 @@
 
 #include "xlib.h"
 
-#ifdef X_DEBUG
-#include "xlog.h"
-#define X_LOG(format, ... ) xLogPrintf("xLib: " format, __VA_ARGS__)
-#else
-#define X_LOG(format, ... ) do{}while(0)
-#endif
-
 #ifdef X_LIB_KERNEL
 PSP_MODULE_INFO("xLibApp", PSP_MODULE_KERNEL, 1, 1);
 PSP_MAIN_THREAD_ATTR(0);

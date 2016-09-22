@@ -9,13 +9,6 @@
 
 #include "xobj.h"
 
-#ifdef X_DEBUG
-#include "xlog.h"
-#define X_LOG(format, ... ) xLogPrintf("xObj: " format, __VA_ARGS__)
-#else
-#define X_LOG(format, ... ) do{}while(0)
-#endif
-
 #define OBJ_TNV_UNOPT	0
 #define OBJ_TV_UNOPT	1
 #define OBJ_NV_UNOPT	2

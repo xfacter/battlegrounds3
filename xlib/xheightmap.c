@@ -7,13 +7,6 @@
 #include "xgraphics.h"
 #include "xheightmap.h"
 
-#ifdef X_DEBUG
-#include "xlog.h"
-#define X_LOG(format, ... ) xLogPrintf("xHeightmap: " format, __VA_ARGS__)
-#else
-#define X_LOG(format, ... ) do{}while(0)
-#endif
-
 #define LIST_SIZE 512
 
 //#define FRUSTUM_CULL

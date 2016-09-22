@@ -48,8 +48,10 @@ int xMain()
 	xTexture* logo = xTexLoadTGA("./data/dashhacks.tga", 0, 0);
 
 	int stage = 1;
-	float fade = 0.0f;
+	float fade = 1.0f;
 	float time = 0.0f;
+	xTimeUpdate();
+	xGuEnable(X_WAIT_VBLANK);
 	while (xRunning() && stage < 4)
 	{
 		xTimeUpdate();
@@ -57,10 +59,10 @@ int xMain()
 		float dt = xTimeGetDeltaTime();
 		if (stage == 1)
 		{
-			fade += dt/FADE_TIME;
-			if (fade >= 1.0f)
+			fade -= dt/FADE_TIME;
+			if (fade <= 0.0f)
 			{
-				fade = 1.0f;
+				fade = 0.0f;
 				stage = 2;
 			}
 		}
@@ -74,10 +76,10 @@ int xMain()
 		}
 		else
 		{
-			fade -= dt/FADE_TIME;
-			if (fade <= 0.0f)
+			fade += dt/FADE_TIME;
+			if (fade >= 1.0f)
 			{
-				fade = 0.0f;
+				fade = 1.0f;
 				stage = 4;
 			}
 		}
@@ -86,11 +88,19 @@ int xMain()
 		bg3_draw_tex(logo, 0, 0);
 		sceGuEnable(GU_BLEND);
 		sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
-		bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_COLOR(0.0f, 0.0f, 0.0f, 1.0f-fade));
+		bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_COLOR(0.0f, 0.0f, 0.0f, fade));
 		xGuFrameEnd();
 	}
+	xGuDisable(X_WAIT_VBLANK);
 
 	xTexFree(logo);
+
+	xTexture* font_tex = xTexLoadTGA("./data/font.tga", 0, X_TEX_TOP_IN_VRAM|X_TEX_GRAY_TO_ALPHA);
+	xBitmapFont* font = xTextLoadFont(font_tex, "./data/width.fw");
+	xTextSetFont(font);
+	xTextSetColor(0xffffffff);
+	xTextSetScale(1.0f);
+	xTextSetAlign(X_ALIGN_LEFT);
 
 	bg3_base* base = bg3_create_base();
 	if (base == NULL) return 1;
@@ -102,13 +112,6 @@ int xMain()
 	if (!base->game.loaded) return 1;
 	*/
     
-	xTexture* font_tex = xTexLoadTGA("./data/font.tga", 0, X_TEX_TOP_IN_VRAM|X_TEX_GRAY_TO_ALPHA);
-	xBitmapFont* font = xTextLoadFont(font_tex, "./data/width.fw");
-    xTextSetFont(font);
-    xTextSetColor(0xffffffff);
-    xTextSetScale(1.0f);
-    xTextSetAlign(X_ALIGN_LEFT);
-
 #if 0
 	xWavInit(16);
 	xWav* bullet_wav = xWavLoad("./data/bullet.wav");

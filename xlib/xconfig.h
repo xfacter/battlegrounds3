@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <pspkernel.h>
 #include <psptypes.h>
+#include "xlog.h"
 
 /* TODO:
     * 3D text (xtext.h) (fix)

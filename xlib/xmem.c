@@ -2,13 +2,6 @@
 
 #include "xmem.h"
 
-#ifdef X_DEBUG
-#include "xlog.h"
-#define X_LOG(format, ... ) xLogPrintf("xMem: " format, __VA_ARGS__)
-#else
-#define X_LOG(format, ... ) do{}while(0)
-#endif
-
 /* VRAM memory management, by Raphael, slightly modified */
 
 // A MEMORY BLOCK ENTRY IS MADE UP LIKE THAT:

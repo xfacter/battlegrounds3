@@ -275,21 +275,13 @@ void bg3_draw_rect(int x, int y, int w, int h, u32 c)
 	vertices[0].z = 0;
 	vertices[1].color = c;
 	vertices[1].x = x + w;
-	vertices[1].y = y;
+	vertices[1].y = y + h;
 	vertices[1].z = 0;
-	vertices[2].color = c;
-	vertices[2].x = x + w;
-	vertices[2].y = y + h;
-	vertices[2].z = 0;
-	vertices[3].color = c;
-	vertices[3].x = x;
-	vertices[3].y = y + h;
-	vertices[3].z = 0;
 	xGuSaveStates();
 	sceGuDisable(GU_DEPTH_TEST);
 	sceGuDisable(GU_TEXTURE_2D);
 	sceGuDepthMask(GU_TRUE);
-	sceGuDrawArray(GU_TRIANGLE_FAN, CVertex2D_vtype|GU_TRANSFORM_2D, 4, 0, vertices);
+	sceGuDrawArray(GU_SPRITES, CVertex2D_vtype|GU_TRANSFORM_2D, 2, 0, vertices);
 	sceGuDepthMask(GU_FALSE);
 	xGuLoadStates();
 }

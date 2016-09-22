@@ -7,9 +7,9 @@
 extern "C" {
 #endif
 
-void xLogPrint(char* text);
-
 void xLogPrintf(char* text, ... );
+
+#define X_LOG xLogPrintf
 
 #ifdef __cplusplus
 }

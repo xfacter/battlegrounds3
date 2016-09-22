@@ -67,8 +67,8 @@ bg3_base* bg3_create_base()
 	fclose(file);
 
 	file = fopen("./config.ini", "r");
-	base->inverted = xIniGetInt(file, "inverted", 0);
-	base->deadzone = xIniGetFloat(file, "deadzone", 0.0f);
+	base->inverted = xIniGetInt(file, "inverted", 1);
+	base->deadzone = xIniGetFloat(file, "deadzone", 0.1f);
 	fclose(file);
 
 	return base;

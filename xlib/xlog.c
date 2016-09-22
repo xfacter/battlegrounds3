@@ -23,9 +23,11 @@ void xLogPrint(char* text)
 
 void xLogPrintf(char* text, ... )
 {
+#ifdef X_DEBUG
     va_list ap;
     va_start(ap, text);
-    vsnprintf(buffer, X_BUFFER_SIZE, text, ap);
+	vsnprintf(buffer, X_BUFFER_SIZE, text, ap);
     va_end(ap);
     xLogPrint(buffer);
+#endif
 }

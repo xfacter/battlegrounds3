@@ -9,7 +9,6 @@
 #include "game.h"
 
 #define LOD_DELAY 1.0f
-#define DEADZONE (0.20f)
 //#define ENABLE_MOTIONBLUR
 #define MOTION_BLUR_STEP (1.0f/60)
 //#define DRAW_ELLIPSOIDS
@@ -101,12 +100,13 @@ void bg3_game_process_player_input(bg3_base* base, float dt)
 	{
 		if (p->hp_armor > 0.0f)
 		{
-			if (xCtrlAnalogAlive(DEADZONE))
+			if (xCtrlAnalogAlive(base->deadzone))
 			{
 				x_rotatez(&p->cam_dir, -TANK_TURN_X*xCtrlAnalogX()*dt);
 				//p->cam_dir.z += 5.0f*xCtrlAnalogY()*dt;
 				p->cam_pitch += (base->inverted ? -1 : 1) * TANK_TURN_Y * -xCtrlAnalogY() * dt;
 			}
+#ifdef X_DEBUG
 			if (xCtrlTap(PSP_CTRL_UP))
 			{
 				g->player += 1;
@@ -117,6 +117,7 @@ void bg3_game_process_player_input(bg3_base* base, float dt)
 				g->player -= 1;
 				if (g->player < 0) g->player = g->num_players-1;
 			}
+#endif
 			if (xCtrlTap(PSP_CTRL_RIGHT))
 			{
 				do {
@@ -1702,14 +1703,66 @@ void bg3_game_update_render(bg3_base* base, float dt)
 		sceGuDisable(GU_BLEND);
 		sceGuEnable(GU_DITHER);
 
-		xTextSetAlign(X_ALIGN_LEFT);
-		xTextPrintf(1, X_SCREEN_HEIGHT - 15, "FPS: %f", 1.0f/dt);
-		//xTextPrintf(1, 10, "speed: %f", xVec3Length((xVector3f*)&players[g->player].vel));
-		//xTextPrintf(1, 20, "collided: %i", bg3_ellipsoid_ellipsoid_collision(&players[0].e_mat, &players[0].e_pos, &players[1].e_mat, &players[1].e_pos, &e_radii));
+#define ICON_START 350
+#define ICON_WIDTH 32
+#define ICON_COLOR0 0x20dddddd
+#define ICON_COLOR1 0x7f7f7f7f
+#define ICON_OUTLINE 0xff000000
+
+		sceGuEnable(GU_BLEND);
+		sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
+
+		int x = ICON_START;
+		int y = 0;
+		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR0);
+		x += ICON_WIDTH;
+		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR0);
+		x += ICON_WIDTH;
+		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR0);
+		x += ICON_WIDTH;
+		bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR0);
+		x = ICON_START;
+		y = 0;
+		if (players[g->player].weapons & (1<<BG3_MACHINE_GUN))
+			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR1);
+		x += ICON_WIDTH;
+		if (players[g->player].weapons & (1<<BG3_LASER))
+			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR1);
+		x += ICON_WIDTH;
+		if (players[g->player].weapons & (1<<BG3_TANK_SHELL))
+			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR1);
+		x += ICON_WIDTH;
+		if (players[g->player].weapons & (1<<BG3_MISSILES))
+			bg3_draw_rect(x, y, ICON_WIDTH, ICON_WIDTH, ICON_COLOR1);
+		x = ICON_START-1;
+		y = 0-1;
+		bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+		x += ICON_WIDTH;
+		bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+		x += ICON_WIDTH;
+		bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+		x += ICON_WIDTH;
+		bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, ICON_OUTLINE);
+
+		x = ICON_START-1;
+		y = 0-1;
+		if (players[g->player].primary == BG3_MACHINE_GUN)
+			bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, 0xff0000af);
+		x += ICON_WIDTH;
+		if (players[g->player].primary == BG3_LASER)
+			bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, 0xff0000af);
+		x += ICON_WIDTH;
+		if (players[g->player].primary == BG3_TANK_SHELL)
+			bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, 0xff0000af);
+		x += ICON_WIDTH;
+		if (players[g->player].primary == BG3_MISSILES)
+			bg3_draw_outline(x, y, ICON_WIDTH, ICON_WIDTH+1, 0xff0000af);
+
+		sceGuDisable(GU_BLEND);
 
 		xTextSetAlign(X_ALIGN_RIGHT);
-		int x = X_SCREEN_WIDTH-1;
-		int y = 1;
+		x = X_SCREEN_WIDTH-1;
+		y = ICON_WIDTH+1;
 		switch (players[g->player].primary)
 		{
 		case BG3_MACHINE_GUN:
@@ -1733,6 +1786,11 @@ void bg3_game_update_render(bg3_base* base, float dt)
 			break;
 		}
 	}
+
+	xTextSetAlign(X_ALIGN_LEFT);
+#ifdef X_DEBUG
+	xTextPrintf(1, X_SCREEN_HEIGHT - 15, "FPS: %f", 1.0f/dt);
+#endif
 
 
 

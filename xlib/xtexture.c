@@ -7,13 +7,6 @@
 
 #include "xtexture.h"
 
-#ifdef X_DEBUG
-#include "xlog.h"
-#define X_LOG(format, ... ) xLogPrintf("xTex: " format, __VA_ARGS__)
-#else
-#define X_LOG(format, ... ) do{}while(0)
-#endif
-
 static void swizzle_fast(void* out, const void* in, u32 width, u32 height)
 {
     unsigned int blockx, blocky;

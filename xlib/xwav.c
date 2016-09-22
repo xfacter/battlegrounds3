@@ -5,14 +5,6 @@
 
 #include "xwav.h"
 
-#ifdef X_DEBUG
-#include "xlog.h"
-#define X_LOG(format, ... ) xLogPrintf("xWav: " format, __VA_ARGS__)
-#else
-#define X_LOG(format, ... ) do{}while(0)
-#endif
-
-
 typedef struct xWavSound {
 	u32 playptr;
 	u32 playptr_fraction;

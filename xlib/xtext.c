@@ -9,13 +9,6 @@
 
 #include "xtext.h"
 
-#ifdef X_DEBUG
-#include "xlog.h"
-#define X_LOG(format, ... ) xLogPrintf("xText: " format, __VA_ARGS__)
-#else
-#define X_LOG(format, ... ) do{}while(0)
-#endif
-
 static xBitmapFont* x_current_font = 0;
 static u32 x_font_color = 0xffffffff;
 static float x_font_scale = 1.0f;
@@ -189,7 +182,7 @@ int xTextLength(char* text, int num)
     
     float length = 0.0f;
     char* cur_char = text;
-    while (cur_char != '\0' && num >= 0)
+    while (cur_char != '\0' && num > 0)
     {
         length += x_font_scale*x_current_font->widths[(u8)*cur_char];
         cur_char += 1;

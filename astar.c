@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "astar.h"
 
 #include "xlib/xmem.h"
@@ -22,6 +23,7 @@ astar* astar_create(int width, int height, int heap_max)
 		astar_free(as);
 		return NULL;
 	}
+	memset(as->nodes, 0, width*height*sizeof(astar_node));
 	return as;
 }
 
