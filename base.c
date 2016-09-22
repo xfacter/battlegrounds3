@@ -8,25 +8,6 @@
 
 #include "base.h"
 
-#define TSHELL_LIFE 0.75f
-#define TSHELL_START_WIDTH 0.1f
-#define TSHELL_END_WIDTH 0.5f
-
-#define BULLET_LIFE 3.0f
-
-#define MISSILE_LIFE 5.0f
-#define MISSILE_TARGET_TIME 0.05f
-#define MISSILE_FOLLOW_TIME 0.1f
-
-#define POWERUP_LIFE 25.0f
-#define POWERUP_RESPAWN_TIME 40.0f
-#define POWERUP_EFFECT_WAIT 0.025f
-#define POWERUP_RADIUS 0.5f
-
-#define LASER_START_AMMO 0.0f
-#define TSHELL_START_AMMO 0
-#define MISSILE_START_AMMO 0
-
 bg3_base* bg3_create_base()
 {
 	bg3_base* base = (bg3_base*)x_malloc(sizeof(bg3_base));
@@ -92,22 +73,22 @@ void bg3_base_load_resources(bg3_base* base)
 	base->resources.tank_base = xObjLoad("./data/tank_base.obj", 1);
 	base->resources.tank_top = xObjLoad("./data/tank_top.obj", 1);
 	base->resources.tank_turret = xObjLoad("./data/tank_turret.obj", 1);
-	base->resources.tank_tex = xTexLoadTGA("./data/tank.tga", 0, X_TEX_TOP_IN_VRAM);
+	if (base->game.map->type == ENV_ARCTIC)
+		base->resources.tank_tex = xTexLoadTGA("./data/tank_arctic.tga", 0, X_TEX_TOP_IN_VRAM);
+	else
+		base->resources.tank_tex = xTexLoadTGA("./data/tank_desert.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.smoke_tex = xTexLoadTGA("./data/dirt_particle.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.dirt_particle_tex = xTexLoadTGA("./data/smoke.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.bulletmark_tex = xTexLoadTGA("./data/bulletmark.tga", 0, X_TEX_TOP_IN_VRAM);
 	//base->resources.lasermark_tex = xTexLoadTGA("./data/lasermark.tga", 0, X_TEX_TOP_IN_VRAM);
 	//base->resources.bullet_tex = xTexLoadTGA("./data/bullet.tga", 0, X_TEX_TOP_IN_VRAM);
-	base->resources.reticle_tex = xTexLoadTGA("./data/reticle.tga", 0, X_TEX_TOP_IN_VRAM);
+	base->resources.crosshair_tex = xTexLoadTGA("./data/crosshair.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.shadow_tex = xTexLoadTGA("./data/shadow.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.flash_tex = xTexLoadTGA("./data/flash.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.explosion_tex = xTexLoadTGA("./data/explosion.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.laser_tex = xTexLoadTGA("./data/laser.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.tshell_tex = xTexLoadTGA("./data/tshell.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.lasermark_tex = xTexLoadTGA("./data/lasermark.tga", 0, X_TEX_TOP_IN_VRAM);
-	base->resources.hp_hud_tex = xTexLoadTGA("./data/hp_hud.tga", 0, X_TEX_TOP_IN_VRAM);
-	base->resources.hp_armor_tex = xTexLoadTGA("./data/hp_armor.tga", 0, X_TEX_TOP_IN_VRAM);
-	base->resources.hp_shields_tex = xTexLoadTGA("./data/hp_shields.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.muzzleflash_tex = xTexLoadTGA("./data/muzzleflash.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.scorch_tex = xTexLoadTGA("./data/scorch.tga", 0, X_TEX_TOP_IN_VRAM);
 	base->resources.shield_tex = xTexLoadTGA("./data/shield.tga", 0, X_TEX_TOP_IN_VRAM);
@@ -125,6 +106,15 @@ void bg3_base_load_resources(bg3_base* base)
 	if (base->resources.missile_fly_sound != NULL) base->resources.missile_fly_sound->def_loop = X_SOUND_LOOP;
 	base->resources.explosion_sound = xSoundLoadBufferWav("./data/explosion.wav");
 	base->resources.powerup_sound = xSoundLoadBufferWav("./data/powerup.wav");
+	if (base->game.map->type == ENV_ARCTIC)
+		base->resources.wind_sound = xSoundLoadBufferWav("./data/arctic.wav");
+	else
+		base->resources.wind_sound = xSoundLoadBufferWav("./data/desert.wav");
+	if (base->resources.wind_sound != NULL)
+	{
+		base->resources.wind_sound->def_loop = X_SOUND_LOOP;
+		base->resources.wind_sound->def_vol = 0.5f;
+	}
 	base->resources.loaded = 1;
 }
 
@@ -144,16 +134,13 @@ void bg3_base_free_resources(bg3_base* base)
 	xTexFree(base->resources.bulletmark_tex);
 	//xTexFree(base->resources.lasermark_tex);
 	//xTexFree(base->resources.bullet_tex);
-	xTexFree(base->resources.reticle_tex);
+	xTexFree(base->resources.crosshair_tex);
 	xTexFree(base->resources.shadow_tex);
 	xTexFree(base->resources.flash_tex);
 	xTexFree(base->resources.explosion_tex);
 	xTexFree(base->resources.laser_tex);
 	xTexFree(base->resources.tshell_tex);
 	xTexFree(base->resources.lasermark_tex);
-	xTexFree(base->resources.hp_hud_tex);
-	xTexFree(base->resources.hp_armor_tex);
-	xTexFree(base->resources.hp_shields_tex);
 	xTexFree(base->resources.muzzleflash_tex);
 	xTexFree(base->resources.scorch_tex);
 	xTexFree(base->resources.shield_tex);
@@ -169,6 +156,7 @@ void bg3_base_free_resources(bg3_base* base)
 	xSoundFreeBuffer(base->resources.missile_fly_sound);
 	xSoundFreeBuffer(base->resources.explosion_sound);
 	xSoundFreeBuffer(base->resources.powerup_sound);
+	xSoundFreeBuffer(base->resources.wind_sound);
 	memset(&base->resources, 0, sizeof(bg3_resources));
 	base->resources.loaded = 0;
 }
@@ -217,7 +205,7 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.missile_ps->prim = X_PARTICLE_SPRITES;
 	}
 
-	base->effects.expl_flash_ps = xParticleSystemConstruct(32);
+	base->effects.expl_flash_ps = xParticleSystemConstruct(64);
 	if (base->effects.expl_flash_ps)
 	{
 		xVec3Set(&base->effects.expl_flash_ps->pos_rand, 2.0f, 2.0f, 2.0f);
@@ -237,7 +225,7 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.expl_flash_ps->prim = X_PARTICLE_SPRITES;
 	}
 
-	base->effects.expl_flames_ps = xParticleSystemConstruct(128);
+	base->effects.expl_flames_ps = xParticleSystemConstruct(256);
 	if (base->effects.expl_flames_ps)
 	{
 		xVec3Set(&base->effects.expl_flames_ps->pos_rand, 0.0f, 0.0f, 0.0f);
@@ -257,7 +245,7 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.expl_flames_ps->prim = X_PARTICLE_SPRITES;
 	}
 
-	base->effects.expl_debris_ps = xParticleSystemConstruct(128);
+	base->effects.expl_debris_ps = xParticleSystemConstruct(256);
 	if (base->effects.expl_debris_ps)
 	{
 		xVec3Set(&base->effects.expl_debris_ps->pos_rand, 0.0f, 0.0f, 0.0f);
@@ -277,7 +265,7 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.expl_debris_ps->prim = X_PARTICLE_SPRITES;
 	}
 
-	base->effects.expl_sparks_ps = xParticleSystemConstruct(128);
+	base->effects.expl_sparks_ps = xParticleSystemConstruct(256);
 	if (base->effects.expl_sparks_ps)
 	{
 		xVec3Set(&base->effects.expl_sparks_ps->pos_rand, 0.0f, 0.0f, 0.0f);
@@ -296,7 +284,7 @@ void bg3_base_init_effects(bg3_base* base)
 		base->effects.expl_sparks_ps->prim = X_PARTICLE_SPRITES;
 	}
 
-	base->effects.expl_smoke_ps = xParticleSystemConstruct(128);
+	base->effects.expl_smoke_ps = xParticleSystemConstruct(256);
 	if (base->effects.expl_smoke_ps)
 	{
 		xVec3Set(&base->effects.expl_smoke_ps->pos_rand, 1.0f, 1.0f, 1.0f);
@@ -758,6 +746,7 @@ void bg3_spawn_player(bg3_base* base, int player)
 
 	players[player].smoke_time = 0.0f;
 	players[player].spark_time = 0.0f;
+	players[player].powerup_time = 0.0f;
 
 	players[player].firing = 0;
 

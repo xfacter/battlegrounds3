@@ -46,6 +46,7 @@ typedef struct bg3_map {
 } bg3_map;
 
 typedef struct bg3_map_preview {
+	char name[256];
 	int players;
 	int width;
 	xTexture* terrain_tex;

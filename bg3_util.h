@@ -52,6 +52,8 @@ void bg3_draw_outline(int x, int y, int w, int h, u32 c);
 
 void bg3_draw_rect(int x, int y, int w, int h, u32 c);
 
+void bg3_draw_vert_grad(int x, int y, int w, int h, u32 c0, u32 c1);
+
 void bg3_draw_tex(xTexture* tex, int x, int y);
 
 void bg3_draw_tex2(xTexture* tex, int x, int y, int w, int h);

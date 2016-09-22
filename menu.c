@@ -104,7 +104,7 @@ void bg3_print_text_alpha(int x, int y, float alpha, char* fmt, ...)
 	vsnprintf(buffer, 256, fmt, ap);
 	va_end(ap);
 	xTextSetColor(GU_COLOR(0.0f, 0.0f, 0.0f, alpha));
-	xTextPrintf(x-1, y-1, buffer);
+	xTextPrintf(x+1, y+1, buffer);
 	xTextSetColor(GU_COLOR(1.0f, 1.0f, 1.0f, alpha));
 	xTextPrintf(x, y, buffer);
 	xTextSetColor(0xffffffff);
@@ -126,6 +126,9 @@ void bg3_menu_loop(bg3_base* base)
 	view.w.y = 30.0f;
 	view.w.z = xHeightmapGetHeight(&map->hmp, 0, view.w.x, view.w.y) + 2.5f;
 	gumRotateX(&view, DEG_TO_RAD(90.0f));
+
+	xSoundBuffer* music = xSoundLoadBufferWav("./data/title.wav");
+	xSoundPlay(music);
 
 	xObj* sky_obj = xObjLoad("./data/sky.obj", 1);
 	xTexture* smoke_tex = xTexLoadTGA("./data/smoke.tga", 0, 0);
@@ -198,7 +201,7 @@ void bg3_menu_loop(bg3_base* base)
 
 #define LASER_AMMO 10
 #define TSHELL_AMMO 10
-#define MISSILE_AMMO 5
+#define MISSILE_AMMO 6
 
 	int menu_option = 3;
 	int laser_ammo = LASER_AMMO;
@@ -324,8 +327,8 @@ void bg3_menu_loop(bg3_base* base)
 						base->game.spawn_ammo_laser = laser_ammo;
 						base->game.spawn_ammo_tshells = tshell_ammo;
 						base->game.spawn_ammo_missiles = missile_ammo;
-						bg3_base_load_resources(base);
 						bg3_base_init_effects(base);
+						bg3_base_load_resources(base);
 						stage = 3;
 						fade = 0.0f;
 						xTimeUpdate();
@@ -481,17 +484,22 @@ void bg3_menu_loop(bg3_base* base)
 				}
 
 				xTextSetAlign(X_ALIGN_CENTER);
-				bg3_print_text(X_SCREEN_WIDTH/2, 220, "%ix%i", p->previews[choice].preview->width, p->previews[choice].preview->width);
-				bg3_print_text(X_SCREEN_WIDTH/2, 235, "%i Players", p->previews[choice].preview->players);
+				x = X_SCREEN_WIDTH/2;
+				y = 205;
+				bg3_print_text(x, y, p->previews[choice].preview->name);
+				y += 15;
+				bg3_print_text(x, y, "%ix%i", p->previews[choice].preview->width, p->previews[choice].preview->width);
+				y += 15;
+				bg3_print_text(x, y, "%i Players", p->previews[choice].preview->players);
 				xTextSetAlign(X_ALIGN_LEFT);
 			}
 			else
 			{
 				x = X_SCREEN_WIDTH/2;
-				y = 150;
+				y = 130;
 				size = TEX_SMALL_SIZE;
-				bg3_menu_draw_rect_center(x, X_SCREEN_HEIGHT/2, size+2, size+2, 0x000000);
-				bg3_menu_draw_tex_center(p->previews[choice].preview->terrain_tex, x, X_SCREEN_HEIGHT/2, size, size);
+				bg3_menu_draw_rect_center(x, y, size+2, size+2, 0x000000);
+				bg3_menu_draw_tex_center(p->previews[choice].preview->terrain_tex, x, y, size, size);
 #define MENU_START_X 170
 #define MENU_START_Y 200
 #define MENU_VALUE_X 310
@@ -503,6 +511,8 @@ void bg3_menu_loop(bg3_base* base)
 				bg3_draw_rect(x, y, width, height, 0xff7f7f7f);
 				bg3_draw_outline(x-1, y-1, width+1, height+1, 0xff000000);
 
+				xTextSetAlign(X_ALIGN_CENTER);
+				bg3_print_text(X_SCREEN_WIDTH/2, MENU_START_Y-15, p->previews[choice].preview->name);
 				xTextSetAlign(X_ALIGN_LEFT);
 				y = MENU_START_Y;
 				bg3_print_text(MENU_START_X, y, "Laser Ammo:");
@@ -543,5 +553,9 @@ void bg3_menu_loop(bg3_base* base)
 	xTexFree(smoke_tex);
 	xObjFree(sky_obj);
 	bg3_menu_free_previews(p);
+
+	xSoundSetStateAll(X_SOUND_STOP, 0);
+	xSoundFreeBuffer(music);
+
 	bg3_free_map(map);
 }

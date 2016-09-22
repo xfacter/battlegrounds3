@@ -7,36 +7,36 @@ int xIniGetInt(FILE* f, char* param, int notfound)
 {
     if (!f || !param)
         return notfound;
-    int r = notfound;
     rewind(f);
     while(!feof(f))
     {
         fgets(buffer, sizeof(buffer), f);
         if (strncmp(buffer, param, strlen(param)) == 0)
-        {
-            sscanf(buffer, "%*s = %i", &r);
-            break;
+		{
+			int r;
+			sscanf(buffer, "%*s = %i", &r);
+			return r;
         }
     }
-    return r;
+    return notfound;
 }
 
 float xIniGetFloat(FILE* f, char* param, float notfound)
 {
     if (!f || !param)
         return notfound;
-    float r = notfound;
     rewind(f);
     while(!feof(f))
     {
         fgets(buffer, sizeof(buffer), f);
         if (strncmp(buffer, param, strlen(param)) == 0)
         {
-            sscanf(buffer, "%*s = %f", &r);
-            break;
+			float r;
+			sscanf(buffer, "%*s = %f", &r);
+			return r;
         }
     }
-    return r;
+    return notfound;
 }
 
 void xIniGetVectorf(FILE* f, char* param, float* x, float* y, float* z)
@@ -56,8 +56,8 @@ void xIniGetVectorf(FILE* f, char* param, float* x, float* y, float* z)
             if (y)
                 *y = vals[1];
             if (z)
-                *z = vals[2];
-            break;
+				*z = vals[2];
+			return;
         }
     }
 }
@@ -80,7 +80,7 @@ void xIniGetVectori(FILE* f, char* param, int* x, int* y, int* z)
 				*y = vals[1];
 			if (z)
 				*z = vals[2];
-			break;
+			return;
 		}
 	}
 }
@@ -88,12 +88,12 @@ void xIniGetVectori(FILE* f, char* param, int* x, int* y, int* z)
 char* xIniGetString(FILE* f, char* param, char* str, char* notfound)
 {
     if (!str)
-        return 0;
+        return NULL;
     if (!f || !param)
     {
         if (notfound)
             strcpy(str, notfound);
-        return 0;
+        return str;
     }
     rewind(f);
     while(!feof(f))
@@ -107,9 +107,13 @@ char* xIniGetString(FILE* f, char* param, char* str, char* notfound)
                     strcpy(str, notfound);
                 else
                     str[0] = '\0';
-            }
-            break;
+			}
+			return str;
         }
-    }
+	}
+	if (notfound)
+		strcpy(str, notfound);
+	else
+		str[0] = '\0';
     return str;
 }

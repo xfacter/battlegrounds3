@@ -1,13 +1,30 @@
-[Battlegrounds 3]
-for PSP-Hacks Homebrew Idol 2
+[PSP-Hacks Homebrew Idol 2]
+Battlegrounds 3 - v0.4
 by Xfacter
 
+[About]
+BG3 is a hovertank deathmatch game. Using a variety of weapons, defeat your opponents to bring glory to your homeland.
+
 [Controls]
-Shape buttons - movement
-Analog stick - look
-D-pad right/left - change weapon
-Right trigger - fire weapon
+Movement - TRIANGLE, CIRCLE, CROSS, SQUARE
+Look - Analog Nub
+Change Weapon - D-Pad Left/Right
+Fire - Right Trigger
 
-edit the config.ini file to change analog stick inversion and deadzone
+(Note: Change look inversion and analog deadzone in the config.ini file)
 
-This file is not yet completed.
+[Gameplay]
+There are a range of weapons in BG3 with varying levels of effectiveness. In order to defeat an enemy you must deplete his shields and armor.
+The machine gun is a good all-around weapon. The laser is effective against shields. The tank shells are effective against armor.
+The missiles are better all-around weapons.
+
+[Credits]
+Design, Coding, Graphics - Alex Wickes "Xfacter"
+Tank Model - Harry
+Sound FX - http://www.sounddogs.com/
+
+[Special Thanks]
+#psp-programing on irc.freenode.net - Couldn't have done it without you guys.
+
+[Contact]
+If you have questions email me at xfacter@gmail.com

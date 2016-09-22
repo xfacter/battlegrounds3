@@ -1,7 +1,10 @@
 PRIORITIES
 	add content (more maps, etc)
+	make the menus nicer, add options menu, make score display nicer
 	add radar
+	add customizeable tank skins
 	add destroyed tank graphics?
+	add ambient sounds for each map type
 	2. reduce A* map size
 	5. achievements?
 

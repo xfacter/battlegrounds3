@@ -149,16 +149,13 @@ typedef struct bg3_resources {
 	xTexture* bulletmark_tex;
 	//xTexture* lasermark_tex;
 	//xTexture* bullet_tex;
-	xTexture* reticle_tex;
+	xTexture* crosshair_tex;
 	xTexture* shadow_tex;
 	xTexture* flash_tex;
 	xTexture* explosion_tex;
 	xTexture* laser_tex;
 	xTexture* tshell_tex;
 	xTexture* lasermark_tex;
-	xTexture* hp_hud_tex;
-	xTexture* hp_armor_tex;
-	xTexture* hp_shields_tex;
 	xTexture* muzzleflash_tex;
 	xTexture* scorch_tex;
 	xTexture* shield_tex;
@@ -174,6 +171,7 @@ typedef struct bg3_resources {
 	xSoundBuffer* missile_fly_sound;
 	xSoundBuffer* explosion_sound;
 	xSoundBuffer* powerup_sound;
+	xSoundBuffer* wind_sound;
 } bg3_resources;
 
 typedef struct bg3_effects {

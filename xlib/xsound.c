@@ -258,15 +258,15 @@ int xSoundPlay(xSoundBuffer* buf)
 	{
 		if (xSoundGetState(i) == X_SOUND_STOP)
 		{
+			sounds[i].playptr = 0;
+			sounds[i].playptr_fraction = 0;
+			sounds[i].src = NULL;
+			sounds[i].buffer = buf;
 			xSoundSetLoop(i, buf->def_loop);
 			xSoundSetPanMode(i, buf->def_panmode);
 			xSoundSetVolume(i, buf->def_vol);
 			xSoundSetPan(i, buf->def_pan);
 			xSoundSetPitch(i, buf->def_pitch);
-			sounds[i].playptr = 0;
-			sounds[i].playptr_fraction = 0;
-			sounds[i].src = NULL;
-			sounds[i].buffer = buf;
 			sounds[i].playstate = X_SOUND_PLAY;
 			return i;
 		}
@@ -428,12 +428,12 @@ int xSound3dPlay(xSoundBuffer* buf, xSound3dSource* s, int update)
 	{
 		if (xSoundGetState(i) == X_SOUND_STOP)
 		{
-			xSoundSetLoop(i, buf->def_loop);
-			xSoundSetPanMode(i, X_SOUND_COMBINED);
 			sounds[i].playptr = 0;
 			sounds[i].playptr_fraction = 0;
 			sounds[i].src = s;
 			sounds[i].buffer = buf;
+			xSoundSetLoop(i, buf->def_loop);
+			xSoundSetPanMode(i, X_SOUND_COMBINED);
 			sound3d_update(i);
 			//take this out
 			if (sounds[i].volume > 0.0f || update)

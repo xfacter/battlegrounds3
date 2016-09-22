@@ -52,6 +52,25 @@
 #define TSHELL_MAX_AMMO 20
 #define MISSILE_MAX_AMMO 20
 
+#define TSHELL_LIFE 0.75f
+#define TSHELL_START_WIDTH 0.1f
+#define TSHELL_END_WIDTH 0.5f
+
+#define BULLET_LIFE 3.0f
+
+#define MISSILE_LIFE 5.0f
+#define MISSILE_TARGET_TIME 0.05f
+#define MISSILE_FOLLOW_TIME 0.1f
+
+#define POWERUP_LIFE 25.0f
+#define POWERUP_RESPAWN_TIME 40.0f
+#define POWERUP_EFFECT_WAIT 0.025f
+#define POWERUP_RADIUS 1.0f
+
+#define LASER_START_AMMO 0.0f
+#define TSHELL_START_AMMO 0
+#define MISSILE_START_AMMO 0
+
 #define SOUND_RADIUS 50.0f
 
 enum bg3_primary {

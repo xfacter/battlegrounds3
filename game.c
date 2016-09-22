@@ -57,12 +57,6 @@
 #define LASER_MARK_STEP 0.025f
 #define LASER_DISTANCE_FIX 0.5f
 #define LASER_MAX_DIST 50.0f
-#define ARMOR_START 37
-#define ARMOR_WIDTH 158
-#define SHIELDS_START 12
-#define SHIELDS_WIDTH 205
-#define HP_DISPLAY_X 5
-#define HP_DISPLAY_Y 5
 #define LASER_RADIUS 0.1f
 #define LASER_STEP 0.25f
 #define LASER_PHASE 50.0f
@@ -1672,6 +1666,7 @@ void bg3_game_update_render(bg3_base* base, float dt)
 
 
 	sceGuDisable(GU_FOG);
+	sceGuDisable(GU_DITHER);
 
 	if (g->paused)
 	{
@@ -1684,7 +1679,7 @@ void bg3_game_update_render(bg3_base* base, float dt)
 		int y = 100;
 		bg3_print_text(X_SCREEN_WIDTH/2, y, "Press Triangle to exit to menu.");
 		y += 15;
-		bg3_print_text(X_SCREEN_WIDTH/2, y, "Score: %i", players[g->player].score);
+		//bg3_print_text(X_SCREEN_WIDTH/2, y, "Score: %i", players[g->player].score);
 		xTextSetAlign(X_ALIGN_LEFT);
 
 		if (g->exit)
@@ -1700,14 +1695,23 @@ void bg3_game_update_render(bg3_base* base, float dt)
 	}
 	else if (players[g->player].hp_armor > 0.0f)
 	{
+
+#define ARMOR_START 37
+#define ARMOR_WIDTH 100
+#define SHIELDS_START 12
+#define SHIELDS_WIDTH 200
+#define HP_DISPLAY_X 2
+#define HP_DISPLAY_Y 2
+
+		sceGuEnable(GU_BLEND);
 		sceGuBlendFunc(GU_ADD, GU_FIX, GU_ONE_MINUS_SRC_COLOR, 0xffffffff, 0);
-		bg3_draw_tex_center(resources->reticle_tex, X_SCREEN_WIDTH/2, X_SCREEN_HEIGHT/2);
+		bg3_draw_tex_center(resources->crosshair_tex, X_SCREEN_WIDTH/2, X_SCREEN_HEIGHT/2);
 		sceGuDisable(GU_BLEND);
 
-		sceGuDisable(GU_DITHER);
 		sceGuColor(0xffffffff);
 		sceGuEnable(GU_BLEND);
 		sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
+		/*
 		bg3_draw_tex(resources->hp_hud_tex, HP_DISPLAY_X, HP_DISPLAY_Y);
 		xTexDraw(
 			resources->hp_armor_tex, HP_DISPLAY_X, HP_DISPLAY_Y,
@@ -1724,8 +1728,14 @@ void bg3_game_update_render(bg3_base* base, float dt)
 			0, 0,
 			SHIELDS_START + (int)(players[g->player].hp_shields*SHIELDS_WIDTH),
 			resources->hp_shields_tex->height);
+			*/
+		bg3_draw_rect(HP_DISPLAY_X-1, HP_DISPLAY_Y-1, SHIELDS_WIDTH+1, 10, 0xafdddddd);
+		bg3_draw_outline(HP_DISPLAY_X-1, HP_DISPLAY_Y-1, SHIELDS_WIDTH+1, 10, 0xff000000);
+		bg3_draw_vert_grad(HP_DISPLAY_X, HP_DISPLAY_Y, (int)(players[g->player].hp_shields*SHIELDS_WIDTH), 9, 0xaf957000, 0xafffc000);
+		bg3_draw_rect(HP_DISPLAY_X-1, HP_DISPLAY_Y+12-1, ARMOR_WIDTH+1, 10, 0xafdddddd);
+		bg3_draw_outline(HP_DISPLAY_X-1, HP_DISPLAY_Y+12-1, ARMOR_WIDTH+1, 10, 0xff000000);
+		bg3_draw_vert_grad(HP_DISPLAY_X, HP_DISPLAY_Y+12, (int)(players[g->player].hp_armor*ARMOR_WIDTH), 9, 0xaf0000af, 0xaf0000ef);
 		sceGuDisable(GU_BLEND);
-		sceGuEnable(GU_DITHER);
 
 #define ICON_START 350
 #define ICON_WIDTH 32
@@ -1819,7 +1829,12 @@ void bg3_game_update_render(bg3_base* base, float dt)
 			bg3_print_text(x, y, "Unknown");
 			break;
 		}
+
+		xTextSetAlign(X_ALIGN_LEFT);
+		bg3_print_text(240, 1, "Score: %i", g->players[g->player].score);
 	}
+
+	sceGuEnable(GU_DITHER);
 
 	xTextSetAlign(X_ALIGN_LEFT);
 #ifdef X_DEBUG
@@ -1851,6 +1866,9 @@ void bg3_game_loop(bg3_base* base)
 	{
 		bg3_spawn_player(base, i);
 	}
+
+	xSoundPlay(base->resources.wind_sound);
+
 	dust_time = 0.0f;
 	lod_time = LOD_DELAY;
 	float update_time = 0.0f;
@@ -1890,6 +1908,8 @@ void bg3_game_loop(bg3_base* base)
 		//printf("update time: %f\n", update_time);
 		bg3_game_update_render(base, dt);
 	}
+
+	xSoundSetStateAll(X_SOUND_STOP, 0);
 
 	bg3_base_free_effects(base);
 	bg3_base_free_resources(base);

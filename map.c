@@ -10,7 +10,7 @@
 #include "map.h"
 
 #define BG3_HMP_MINLEVEL 3
-#define PATH_MIN_Z 0.7f
+#define PATH_MIN_Z 0.6f
 #define ASTAR_MAP_FACTOR 4
 
 bg3_map* bg3_load_map(int id)
@@ -38,7 +38,7 @@ bg3_map* bg3_load_map(int id)
 	}
 	m->ambient = xIniGetFloat(file, "ambient", 0.0f);
 	m->intensity= xIniGetFloat(file, "intensity", 0.0f);
-	float direction = DEG_TO_RAD(xIniGetFloat(file, "direction", 0.0f));
+	float direction = DEG_TO_RAD(90.0f - xIniGetFloat(file, "direction", 0.0f)) + M_PI;
 	float pitch = DEG_TO_RAD(xIniGetFloat(file, "pitch", 0.0f));
 	m->light_pos.x = x_cosf(direction)*x_cosf(pitch);
 	m->light_pos.y = x_sinf(direction)*x_cosf(pitch);
@@ -384,6 +384,7 @@ bg3_map_preview* bg3_load_map_preview(int id)
 
 	snprintf(buffer, 256, "./maps/%02i/map.ini", id);
 	FILE* file = fopen(buffer, "r");
+	xIniGetString(file, "name", p->name, "Name Not Found");
 	p->players = xIniGetFloat(file, "players", 8);
 	p->width = xIniGetInt(file, "width", 0) - 1;
 	fclose(file);

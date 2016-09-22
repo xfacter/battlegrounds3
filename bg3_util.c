@@ -247,7 +247,7 @@ void bg3_print_text(int x, int y, char* fmt, ...)
 	vsnprintf(buffer, 256, fmt, ap);
 	va_end(ap);
 	xTextSetColor(GU_COLOR(0.0f, 0.0f, 0.0f, 1.0f));
-	xTextPrintf(x-1, y-1, buffer);
+	xTextPrintf(x+1, y+1, buffer);
 	xTextSetColor(GU_COLOR(1.0f, 1.0f, 1.0f, 1.0f));
 	xTextPrintf(x, y, buffer);
 	xTextSetColor(0xffffffff);
@@ -255,7 +255,7 @@ void bg3_print_text(int x, int y, char* fmt, ...)
 
 void bg3_draw_outline(int x, int y, int w, int h, u32 c)
 {
-	CVertex2D* vertices = (CVertex2D*)sceGuGetMemory(5*sizeof(CVertex2D));
+	CVertex2D* vertices = (CVertex2D*)sceGuGetMemory(8*sizeof(CVertex2D));
 	vertices[0].color = c;
 	vertices[0].x = x;
 	vertices[0].y = y;
@@ -264,27 +264,46 @@ void bg3_draw_outline(int x, int y, int w, int h, u32 c)
 	vertices[1].x = x + w;
 	vertices[1].y = y;
 	vertices[1].z = 0;
+
 	vertices[2].color = c;
 	vertices[2].x = x + w;
-	vertices[2].y = y + h;
+	vertices[2].y = y;
 	vertices[2].z = 0;
 	vertices[3].color = c;
-	vertices[3].x = x;
+	vertices[3].x = x + w;
 	vertices[3].y = y + h;
 	vertices[3].z = 0;
-	vertices[4] = vertices[0];
+
+	vertices[4].color = c;
+	vertices[4].x = x + w + 1;
+	vertices[4].y = y + h;
+	vertices[4].z = 0;
+	vertices[5].color = c;
+	vertices[5].x = x;
+	vertices[5].y = y + h;
+	vertices[5].z = 0;
+
+	vertices[6].color = c;
+	vertices[6].x = x;
+	vertices[6].y = y + h;
+	vertices[6].z = 0;
+	vertices[7].color = c;
+	vertices[7].x = x;
+	vertices[7].y = y;
+	vertices[7].z = 0;
+
 	xGuSaveStates();
 	sceGuDisable(GU_DEPTH_TEST);
 	sceGuDisable(GU_TEXTURE_2D);
 	sceGuDepthMask(GU_TRUE);
-	sceGuDrawArray(GU_LINE_STRIP, CVertex2D_vtype|GU_TRANSFORM_2D, 5, 0, vertices);
+	sceGuDrawArray(GU_LINES, CVertex2D_vtype|GU_TRANSFORM_2D, 8, 0, vertices);
 	sceGuDepthMask(GU_FALSE);
 	xGuLoadStates();
 }
 
 void bg3_draw_rect(int x, int y, int w, int h, u32 c)
 {
-	CVertex2D* vertices = (CVertex2D*)sceGuGetMemory(4*sizeof(CVertex2D));
+	CVertex2D* vertices = (CVertex2D*)sceGuGetMemory(2*sizeof(CVertex2D));
 	vertices[0].color = c;
 	vertices[0].x = x;
 	vertices[0].y = y;
@@ -298,6 +317,34 @@ void bg3_draw_rect(int x, int y, int w, int h, u32 c)
 	sceGuDisable(GU_TEXTURE_2D);
 	sceGuDepthMask(GU_TRUE);
 	sceGuDrawArray(GU_SPRITES, CVertex2D_vtype|GU_TRANSFORM_2D, 2, 0, vertices);
+	sceGuDepthMask(GU_FALSE);
+	xGuLoadStates();
+}
+
+void bg3_draw_vert_grad(int x, int y, int w, int h, u32 c0, u32 c1)
+{
+	CVertex2D* vertices = (CVertex2D*)sceGuGetMemory(4*sizeof(CVertex2D));
+	vertices[0].color = c0;
+	vertices[0].x = x;
+	vertices[0].y = y;
+	vertices[0].z = 0;
+	vertices[1].color = c0;
+	vertices[1].x = x + w;
+	vertices[1].y = y;
+	vertices[1].z = 0;
+	vertices[2].color = c1;
+	vertices[2].x = x + w;
+	vertices[2].y = y + h;
+	vertices[2].z = 0;
+	vertices[3].color = c1;
+	vertices[3].x = x;
+	vertices[3].y = y + h;
+	vertices[3].z = 0;
+	xGuSaveStates();
+	sceGuDisable(GU_DEPTH_TEST);
+	sceGuDisable(GU_TEXTURE_2D);
+	sceGuDepthMask(GU_TRUE);
+	sceGuDrawArray(GU_TRIANGLE_FAN, CVertex2D_vtype|GU_TRANSFORM_2D, 4, 0, vertices);
 	sceGuDepthMask(GU_FALSE);
 	xGuLoadStates();
 }
