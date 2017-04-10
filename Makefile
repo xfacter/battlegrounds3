@@ -1,16 +1,17 @@
 LOCAL_BIN = bin
 LOCAL_SRC = src
 LOCAL_TMP = tmp
-LOCAL_PBP = $(LOCAL_BIN)
-LOCAL_DIST_STAGING = bin.staging
-LOCAL_DIST_RELEASE = bin.release
+LOCAL_PBP = Bundle
+LOCAL_RES = Assets
+#LOCAL_DIST_STAGING = bin.staging
+#LOCAL_DIST_RELEASE = bin.release
 
 LOCAL_RESOURCES = data maps skies
 LOCAL_RES_PATHS:= $(addprefix $(LOCAL_BIN)/,$(LOCAL_RESOURCES))
 LOCAL_MODULES = xlib
 LOCAL_MOD_SRC:= $(addprefix $(LOCAL_SRC)/,$(LOCAL_MODULES))
 LOCAL_MOD_TMP:= $(addprefix $(LOCAL_TMP)/,$(LOCAL_MODULES))
-LOCAL_MKDIRS := $(shell mkdir -p $(LOCAL_TMP) $(LOCAL_MOD_TMP))
+LOCAL_MKDIRS := $(shell mkdir -p $(LOCAL_BIN) $(LOCAL_TMP) $(LOCAL_MOD_TMP))
 
 # Define basic variables for PSPSDK. Refer to $(PSPSDK)/lib/build.mak
 PSPSDK=$(shell psp-config --pspsdk-path)
@@ -58,7 +59,7 @@ debug: CFLAGS_OPT = $(CFLAGS_DBG)
 debug: CFLAGS += $(CFLAGS_OPT)
 debug: CXXFLAGS += $(CFLAGS_OPT)
 debug: ASFLAGS += $(CFLAGS_OPT)
-debug: all
+debug: all deploy
 # remember to `make clean` again after building a different distribution!
 
 staging: CFLAGS_OPT = $(CFLAGS_STG)
@@ -78,13 +79,19 @@ release: clean_tmp all #release_more
 #	mkdir -p $(LOCAL_DIST_RELEASE)
 #	rsync -r $(PSP_EBOOT) $(LOCAL_RES_PATHS) $(LOCAL_DIST_RELEASE)
 
-clean: clean_all
+deploy:
+	rsync -a $(LOCAL_RES)/ $(LOCAL_BIN)
 
-clean_all:
-	-rm -rf $(LOCAL_TMP) $(LOCAL_DIST_STAGING) $(LOCAL_DIST_RELEASE)
+clean: clean_more
+
+clean_more:
+	-rm -rf $(LOCAL_TMP) #$(LOCAL_DIST_STAGING) $(LOCAL_DIST_RELEASE)
 
 clean_tmp:
 	-rm $(OBJS) $(DEPS)
+
+raze: clean
+	-rm -rf $(LOCAL_BIN)
 
 
 ## generally no need to edit below this line

@@ -4,5 +4,5 @@
 *.elf
 *.PBP
 *.SFO
-xlog.txt
-stats.dat
+/bin/
+/tmp/
