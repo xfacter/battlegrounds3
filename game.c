@@ -1819,7 +1819,6 @@ void bg3_game_update_render(bg3_base* base, bg3_menu* menu, float dt)
 
 			}
 		}
-		
 	}
 #endif
 

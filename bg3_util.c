@@ -11,41 +11,41 @@
 
 float bg3_ray_plane_collision(ScePspFVector3* out, ScePspFVector3* origin, ScePspFVector3* dir, ScePspFVector3* normal, ScePspFVector3* point)
 {
-    if (!origin || !dir || !normal || !point)
-        return 0.0f;
-    float d = -x_dotproduct(normal, point);
-    float vd = x_dotproduct(normal, dir);
-    //if ray points opposite the normal or is parallel, dont care, return an obvious error val
+	if (!origin || !dir || !normal || !point)
+		return 0.0f;
+	float d = -x_dotproduct(normal, point);
+	float vd = x_dotproduct(normal, dir);
+	//if ray points opposite the normal or is parallel, dont care, return an obvious error val
 	//printf("vd = %f\n", vd);
-    if (vd >= 0.0f)
-        return HUGE_VAL;
-    float v0 = -(x_dotproduct(normal, origin) + d);
-    float t = v0 / vd;
-    if (out)
-    {
-        out->x = origin->x + t*dir->x;
-        out->y = origin->y + t*dir->y;
-        out->z = origin->z + t*dir->z;
-    }
+	if (vd >= 0.0f)
+		return HUGE_VAL;
+	float v0 = -(x_dotproduct(normal, origin) + d);
+	float t = v0 / vd;
+	if (out)
+	{
+		out->x = origin->x + t*dir->x;
+		out->y = origin->y + t*dir->y;
+		out->z = origin->z + t*dir->z;
+	}
 	//printf("t = %f\n", t);
-    return t;
+	return t;
 }
 
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
 float bg3_ray_heightmap_collision(xHeightmap* h, ScePspFVector3* out, ScePspFVector3* origin, ScePspFVector3* dir, float tmax, float tback)
 {
-    ScePspFVector3 n, p;
-    float inv_scale, gridx, gridy, t0, gridx2, gridy2,
-          inv_x, inv_y, tDeltaX, tDeltaY, tCur, tNext,
-		  zCur, zNext, z0, z1, z2, z3;
-    int x, y;
-    if (!origin || !dir)
+	ScePspFVector3 n, p;
+	float inv_scale, gridx, gridy, t0, gridx2, gridy2,
+	      inv_x, inv_y, tDeltaX, tDeltaY, tCur, tNext,
+	      zCur, zNext, z0, z1, z2, z3;
+	int x, y;
+	if (!origin || !dir)
 		return 0.0f;
-    if (!h)
-        goto end;
-    if (!h->vertices || origin->x < 0.0f || origin->x >= h->tile_scale*h->width || origin->y < 0.0f || origin->y >= h->tile_scale*h->height)
-        goto end;
+	if (!h)
+		goto end;
+	if (!h->vertices || origin->x < 0.0f || origin->x >= h->tile_scale*h->width || origin->y < 0.0f || origin->y >= h->tile_scale*h->height)
+		goto end;
 	if (dir->x == 0.0f && dir->y == 0.0f)
 	{
 		if (dir->z < 0.0f)
@@ -69,10 +69,10 @@ float bg3_ray_heightmap_collision(xHeightmap* h, ScePspFVector3* out, ScePspFVec
 			goto end;
 		}
 	}
-    inv_scale = 1.0f/h->tile_scale;
-    inv_x = (dir->x == 0.0f ? HUGE_VAL : 1.0f/dir->x);
-    inv_y = (dir->y == 0.0f ? HUGE_VAL : 1.0f/dir->y);
-    gridx = origin->x*inv_scale;
+	inv_scale = 1.0f/h->tile_scale;
+	inv_x = (dir->x == 0.0f ? HUGE_VAL : 1.0f/dir->x);
+	inv_y = (dir->y == 0.0f ? HUGE_VAL : 1.0f/dir->y);
+	gridx = origin->x*inv_scale;
 	gridy = origin->y*inv_scale;
 	//x = (dir->x < 0.0f && gridx == (int)gridx ? (int)gridx-1 : (int)gridx);
 	//y = (dir->y < 0.0f && gridy == (int)gridy ? (int)gridy-1 : (int)gridy);
@@ -81,10 +81,10 @@ float bg3_ray_heightmap_collision(xHeightmap* h, ScePspFVector3* out, ScePspFVec
 	//printf("x = %i, gridx = %f\n", x, gridx);
 	//printf("y = %i, gridy = %f\n", y, gridy);
 	tCur = 0.0f;
-    while (tCur < tmax + tback)
-    {
-        if (x < 0 || x >= h->width-1 || y < 0 || y >= h->height-1)
-            goto end;
+	while (tCur < tmax + tback)
+	{
+		if (x < 0 || x >= h->width-1 || y < 0 || y >= h->height-1)
+			goto end;
 
 		tDeltaX = (dir->x == 0.0f ? HUGE_VAL :
 			(dir->x > 0.0f ? h->tile_scale*(x+1 - gridx)*inv_x :
@@ -131,15 +131,15 @@ float bg3_ray_heightmap_collision(xHeightmap* h, ScePspFVector3* out, ScePspFVec
 		tCur = tNext;
 		gridx = (origin->x + tCur*dir->x)*inv_scale;
 		gridy = (origin->y + tCur*dir->y)*inv_scale;
-        if (tDeltaX < tDeltaY)
+		if (tDeltaX < tDeltaY)
 		{
-            x += (dir->x > 0.0f ? 1 : -1);
+			x += (dir->x > 0.0f ? 1 : -1);
 		}
-        else
+		else
 		{
-            y += (dir->y > 0.0f ? 1 : -1);
+			y += (dir->y > 0.0f ? 1 : -1);
 		}
-    }
+	}
 end:
 	if (out)
 	{
@@ -147,7 +147,7 @@ end:
 		out->y = origin->y + tmax*dir->y;
 		out->z = origin->z + tmax*dir->z;
 	}
-    return tmax;
+	return tmax;
 collision:
 	if (out)
 	{
@@ -162,7 +162,7 @@ collision:
 			*out = p;
 		}
 	}
-    return t0 - tback;
+	return t0 - tback;
 }
 
 void bg3_get_ellipsoid_inverse_matrix(ScePspFMatrix3* m, ScePspFMatrix4* a, xVector3f* radii)
@@ -420,27 +420,27 @@ void bg3_draw_quad_billboard(xVector3f* cam, xVector3f* pos, xVector3f* len, flo
 	vertices[0].color = c0;
 	vertices[0].u = 0.0f;
 	vertices[0].v = 0.0f;
-    vertices[0].x = pos->x - h0*up.x;
-    vertices[0].y = pos->y - h0*up.y;
+	vertices[0].x = pos->x - h0*up.x;
+	vertices[0].y = pos->y - h0*up.y;
 	vertices[0].z = pos->z - h0*up.z;
 	vertices[1].color = c0;
 	vertices[1].u = 0.0f;
 	vertices[1].v = 1.0f;
-    vertices[1].x = pos->x + h0*up.x;
-    vertices[1].y = pos->y + h0*up.y;
+	vertices[1].x = pos->x + h0*up.x;
+	vertices[1].y = pos->y + h0*up.y;
 	vertices[1].z = pos->z + h0*up.z;
 	vertices[2].color = c1;
 	vertices[2].u = 1.0f;
 	vertices[2].v = 1.0f;
-    vertices[2].x = p2.x + h1*up.x;
-    vertices[2].y = p2.y + h1*up.y;
+	vertices[2].x = p2.x + h1*up.x;
+	vertices[2].y = p2.y + h1*up.y;
 	vertices[2].z = p2.z + h1*up.z;
 	vertices[3].color = c1;
 	vertices[3].u = 1.0f;
 	vertices[3].v = 0.0f;
-    vertices[3].x = p2.x - h1*up.x;
-    vertices[3].y = p2.y - h1*up.y;
-    vertices[3].z = p2.z - h1*up.z;
+	vertices[3].x = p2.x - h1*up.x;
+	vertices[3].y = p2.y - h1*up.y;
+	vertices[3].z = p2.z - h1*up.z;
 	sceGumDrawArray(GU_TRIANGLE_FAN, TCVertexF_vtype|GU_TRANSFORM_3D, 4, 0, vertices);
 }
 

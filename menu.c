@@ -624,7 +624,7 @@ void bg3_menu_loop(bg3_base* base)
 		sceGumMatrixMode(GU_VIEW);
 		sceGumLoadMatrix(&view);
 		sceGumFastInverse();
-		
+
 		sceGumMatrixMode(GU_MODEL);
 
 		sceGumLoadIdentity();

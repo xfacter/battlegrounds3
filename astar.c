@@ -143,7 +143,7 @@ void astar_find_path(astar_path* path, astar* as, int start, int goal)
 		while (1)
 		{
 			//printf("moving top item off list\n");
-			u = v;		
+			u = v;
 			if (2*u+1 <= num_open) //if both children exist
 			{
 				//Check if the F cost of the parent is greater than each child.
@@ -151,7 +151,7 @@ void astar_find_path(astar_path* path, astar* as, int start, int goal)
 				if (as->nodes[as->open_heap[u-1]].f_score >= as->nodes[as->open_heap[2*u-1]].f_score)
 					v = 2*u;
 				if (as->nodes[as->open_heap[v-1]].f_score >= as->nodes[as->open_heap[2*u+1-1]].f_score)
-					v = 2*u+1;		
+					v = 2*u+1;
 			}
 			else if (2*u <= num_open) //if only child #1 exists
 			{
@@ -207,10 +207,10 @@ void astar_find_path(astar_path* path, astar* as, int start, int goal)
 							break;
 					}
 				}
-				while (m > 1) //While item hasn't bubbled to the top (m=1)	
+				while (m > 1) //While item hasn't bubbled to the top (m=1)
 				{
 					//printf("pushing node to top\n");
-					//Check if child's F cost is < parent's F cost. If so, swap them.	
+					//Check if child's F cost is < parent's F cost. If so, swap them.
 					if (as->nodes[as->open_heap[m-1]].f_score <= as->nodes[as->open_heap[m/2-1]].f_score)
 					{
 						int temp = as->open_heap[m/2-1];

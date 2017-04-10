@@ -122,7 +122,7 @@ int xMain()
 
 	//void* memry = x_malloc(20*1024*1024);
 
-    while(xRunning())
+	while(xRunning())
 	{
 		switch (base->state)
 		{
@@ -136,7 +136,7 @@ int xMain()
 			xExit();
 			break;
 		}
-    }
+	}
 
 	bg3_destroy_base(base);
 	xTexFree(font_tex);
@@ -146,5 +146,5 @@ int xMain()
 	xSoundEnd();
 
 	sceKernelExitGame();
-    return 0;
+	return 0;
 }
