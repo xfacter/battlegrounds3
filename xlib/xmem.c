@@ -1,3 +1,11 @@
+/**
+ * This file belongs to the 'xlib' game engine.
+ * Copyright 2009 xfacter
+ * Copyright 2016 wickles
+ * This work is licensed under the LGPLv3
+ * subject to all terms as reproduced in the included LICENSE file.
+ */
+
 #include <stdlib.h>
 
 #include "xmem.h"
@@ -65,11 +73,11 @@ static void* VRAM_alloc( u32 size )
 {
     // Initialize memory block, if not yet done
     if (VRAM_mem_blocks[0]==0) VRAM_mem_blocks[0] = VRAM_BLOCK0;
-    
+
     int i = 0;
     int j = 0;
     int bsize = VRAM_BLOCKS(size);
-    
+
     if (VRAM_largest_update==0 && VRAM_largest_block<bsize)
     {
         #ifdef VRAM_DEBUG
@@ -77,7 +85,7 @@ static void* VRAM_alloc( u32 size )
         #endif
         return(0);
     }
-    
+
     #ifdef VRAM_DEBUG
     X_LOG("allocating %i bytes, in %i blocks", size, bsize);
     #endif
@@ -96,13 +104,13 @@ static void* VRAM_alloc( u32 size )
                 bestblock_prev = j;
                 bestblock_size = csize;
             }
-            
+
             if (csize==bsize) break;
         }
         j = i;
         i += csize;
     }
-    
+
     if (bestblock<0)
     {
         #ifdef VRAM_DEBUG
@@ -110,12 +118,12 @@ static void* VRAM_alloc( u32 size )
         #endif
         return(0);
     }
-    
+
     i = bestblock;
     j = bestblock_prev;
     int csize = bestblock_size;
     VRAM_mem_blocks[i] = __BLOCK_MAKE(bsize,j,0,1);
-    
+
     int next = i+bsize;
     if (csize>bsize && next<VRAM_MEM_BLOCKS)
     {
@@ -126,7 +134,7 @@ static void* VRAM_alloc( u32 size )
             __BLOCK_SET_PREV(VRAM_mem_blocks[nextnext], next);
         }
     }
-    
+
     VRAM_mem_free -= bsize;
     if (VRAM_largest_block==csize)		// if we just allocated from one of the largest blocks
     {
@@ -141,7 +149,7 @@ static void* VRAM_alloc( u32 size )
 static void VRAM_free( void* ptr )
 {
     if (ptr==0) return;
-    
+
     int block = ((unsigned int)ptr - VRAM_MEM_START)/VRAM_BLOCK_SIZE;
     if (block<0 || block>VRAM_MEM_BLOCKS)
     {
@@ -154,7 +162,7 @@ static void VRAM_free( void* ptr )
     #ifdef VRAM_DEBUG
     X_LOG("freeing block %i (0x%08x), size: %i", block, (int)ptr, csize);
     #endif
-    
+
     if (__BLOCK_GET_FREEBLOCK(VRAM_mem_blocks[block])!=1 || csize==0)
     {
         #ifdef VRAM_DEBUG
@@ -162,11 +170,11 @@ static void VRAM_free( void* ptr )
         #endif
         return;
     }
-    
+
     // Mark block as free
     __BLOCK_SET_FREE(VRAM_mem_blocks[block],1);
     VRAM_mem_free += csize;
-    
+
     int next = block+csize;
     // Merge with previous block if possible
     int prev = __BLOCK_GET_PREV(VRAM_mem_blocks[block]);
@@ -181,7 +189,7 @@ static void VRAM_free( void* ptr )
         block = prev;
         }
     }
-    
+
     // Merge with next block if possible
     if (next<VRAM_MEM_BLOCKS)
     {
@@ -194,7 +202,7 @@ static void VRAM_free( void* ptr )
             __BLOCK_SET_PREV(VRAM_mem_blocks[nextnext], block);
         }
     }
-    
+
     // Update if a new largest block emerged
     if (VRAM_largest_block<__BLOCK_GET_SIZE(VRAM_mem_blocks[block]))
     {

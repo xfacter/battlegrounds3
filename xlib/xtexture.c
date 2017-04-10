@@ -1,3 +1,11 @@
+/**
+ * This file belongs to the 'xlib' game engine.
+ * Copyright 2009 xfacter
+ * Copyright 2016 wickles
+ * This work is licensed under the LGPLv3
+ * subject to all terms as reproduced in the included LICENSE file.
+ */
+
 #include <string.h>
 #include <pspgu.h>
 #include <pspgum.h>
@@ -355,10 +363,10 @@ static int tex_load_tga(xTexture* t, char* filename, int levels, int flags)
     FILE* file = fopen(filename, "rb");
     if (!file)
         return 1;
-    
+
     tga_header header;
     fread(&header, sizeof(tga_header), 1, file);
-    
+
     t->width = header.width;
     t->height = header.height;
     t->buf_width = x_next_pow2(t->width);
@@ -366,7 +374,7 @@ static int tex_load_tga(xTexture* t, char* filename, int levels, int flags)
     t->buf_height = x_num_align(t->height, 8);
     t->u_scale = (float)t->width/t->buf_width;
     t->v_scale = (float)t->height/t->pow2_height;
-    
+
     fseek(file, header.idlength, SEEK_CUR);
 
 	X_LOG("TGA: %s, idlength: %u, colormaptype: %u, datatype: %u, colormapstart: %u, colormaplength: %u, colormapdepth: %u \
@@ -466,7 +474,7 @@ static int tex_load_tga(xTexture* t, char* filename, int levels, int flags)
             fclose(file);
             return 1;
         }
-        
+
         t->data = x_malloc(tex_size(t->psm, t->buf_width, t->buf_height));
         if (!t->data)
         {
@@ -616,7 +624,7 @@ static int tex_load_png(xTexture* t, char* filename, int levels, int flags)
 	if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) png_set_tRNS_to_alpha(png_ptr);
 
 	png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
-	
+
 	t->psm = GU_PSM_8888;
 	t->cpsm = 0;
 	t->data = x_malloc(t->buf_width*t->buf_height*4);
@@ -712,9 +720,9 @@ static int tex_load_bmp(xTexture* t, char* filename, int levels, int flags)
     {
         //
     }
-    
+
     //...
-    
+
     fclose(file);
     tex_generate_mipmaps(t, levels);
     tex_swizzle(t);

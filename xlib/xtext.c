@@ -1,3 +1,11 @@
+/**
+ * This file belongs to the 'xlib' game engine.
+ * Copyright 2009 xfacter
+ * Copyright 2016 wickles
+ * This work is licensed under the LGPLv3
+ * subject to all terms as reproduced in the included LICENSE file.
+ */
+
 #include <string.h>
 #include <stdarg.h>
 #include <pspgu.h>
@@ -16,82 +24,82 @@ static int x_font_align = X_ALIGN_LEFT;
 
 static u16 default_widths[256] =
 {
-    10, 10, 10, 10, 
-    10, 10, 10, 10,
-    10, 10, 10, 10, 
-    10, 10, 10, 10,
-    
-    10, 10, 10, 10, 
     10, 10, 10, 10,
     10, 10, 10, 10,
     10, 10, 10, 10,
-    
+    10, 10, 10, 10,
+
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+
     10,  6,  8, 10, //   ! " #
     10, 10, 10,  6, // $ % & '
     10, 10, 10, 10, // ( ) * +
      6, 10,  6, 10, // , - . /
-    
+
     8,   6,  8,  8, // 0 1 2 3
     8,   8,  8,  8, // 6 5 8 7
     8,   8,  6,  6, // 8 9 : ;
     10, 10, 10, 10, // < = > ?
-    
+
     16, 10, 10, 10, // @ A B C
     10, 10, 10, 10, // D E F G
     10,  6,  8, 10, // H I J K
      8, 10, 10, 10, // L M N O
-    
+
     10, 10, 10, 10, // P Q R S
     10, 10, 10, 12, // T U V W
     10, 10, 10, 10, // X Y Z [
     10, 10,  8, 10, // \ ] ^ _
-    
+
      6,  8,  8,  8, // ` a b c
      8,  8,  6,  8, // d e f g
      8,  6,  6,  8, // h i j k
      6, 10,  8,  8, // l m n o
-    
+
      8,  8,  6,  8, // p q r s
      6,  8,  8, 12, // t u v w
      8,  8,  8, 10, // x y z {
-     8, 10,  8, 12, // | } ~  
-     
-    10, 10, 10, 10, 
-    10, 10, 10, 10,
-    10, 10, 10, 10, 
-    10, 10, 10, 10,
-    
-    10, 10, 10, 10, 
+     8, 10,  8, 12, // | } ~
+
     10, 10, 10, 10,
     10, 10, 10, 10,
     10, 10, 10, 10,
-    
-    10, 10, 10, 10, 
     10, 10, 10, 10,
-    10, 10, 10, 10, 
-    10, 10, 10, 10,
-    
-    10, 10, 10, 10, 
+
     10, 10, 10, 10,
     10, 10, 10, 10,
     10, 10, 10, 10,
-    
-    10, 10, 10, 10, 
     10, 10, 10, 10,
-    10, 10, 10, 10, 
-    10, 10, 10, 10,
-    
-    10, 10, 10, 10, 
+
     10, 10, 10, 10,
     10, 10, 10, 10,
     10, 10, 10, 10,
-    
-    10, 10, 10, 10, 
     10, 10, 10, 10,
-    10, 10, 10, 10, 
+
     10, 10, 10, 10,
-    
-    10, 10, 10, 10, 
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+    10, 10, 10, 10,
+
+    10, 10, 10, 10,
     10, 10, 10, 10,
     10, 10, 10, 10,
     10, 10, 10, 10,
@@ -180,7 +188,7 @@ void xTextSetAlign(int align)
 int xTextLength(char* text, int num)
 {
     if (!x_current_font) return 0;
-    
+
     float length = 0.0f;
     char* cur_char = text;
     while (cur_char != '\0' && num > 0)
@@ -219,13 +227,13 @@ int xTextPrint(int x, int y, char* text)
 {
     if (!x_current_font) return 0;
     if (!x_current_font->texture) return 0;
-    
+
     float pos = (float)x;
 	int len = strlen(text);
     int text_length = xTextLength(text, len);
     if (x_font_align == X_ALIGN_CENTER) pos -= 0.5f*text_length;
     else if (x_font_align == X_ALIGN_RIGHT) pos -= text_length;
-    
+
     u16 char_width = x_current_font->texture->width/16;
 
     Text_Vert* vertices = (Text_Vert*)sceGuGetMemory(2*len*sizeof(Text_Vert));
@@ -242,7 +250,7 @@ int xTextPrint(int x, int y, char* text)
         vert_ptr->x = (int)(pos);
         vert_ptr->y = (int)(y);
         vert_ptr->z = 0.0f;
-        
+
         vert_ptr += 1;
         pos += x_font_scale*x_current_font->widths[(u8)*text];
 
@@ -252,7 +260,7 @@ int xTextPrint(int x, int y, char* text)
         vert_ptr->x = (int)(pos);
         vert_ptr->y = (int)(y + x_font_scale*char_width);
         vert_ptr->z = 0.0f;
-        
+
         vert_ptr += 1;
         text += 1;
         //num -= 1;
@@ -286,7 +294,7 @@ float xText3DPrint(xBitmapFont* font, float x, float y, float z, float fw_scale,
 {
     int len = strlen(text);
     if(len <= 0) return 0;
-    
+
     float text_length = xTextLength(font, fw_scale, text);
     float pos = -0.5f*text_length;
     u16 char_width = font->texture->width >> 4;
@@ -305,13 +313,13 @@ float xText3DPrint(xBitmapFont* font, float x, float y, float z, float fw_scale,
         vertices[i*6+0].x = (float)(pos);
         vertices[i*6+0].y = (float)(y - 0.5f*height*char_width);
         vertices[i*6+0].z = 0.0f;
-        
+
         vertices[i*6+1].u = (s16)(tx + offset);
         vertices[i*6+1].v = (s16)(font->texture->height - ty - 1);
         vertices[i*6+1].x = (float)(pos);
         vertices[i*6+1].y = (float)(y + 0.5f*height*char_width);
         vertices[i*6+1].z = 0.0f;
-        
+
         vertices[i*6+2].u = (s16)(tx + offset + font->widths[index] + 1);
         vertices[i*6+2].v = (s16)(font->texture->height - ty - 1);
         vertices[i*6+2].x = (float)(pos + fw_scale*font->widths[index]);
@@ -338,7 +346,7 @@ float xText3DPrint(xBitmapFont* font, float x, float y, float z, float fw_scale,
 
         pos += fw_scale*font->widths[index];
     }
-    
+
     ScePspFMatrix4 view_mat;
     sceGumMatrixMode(GU_VIEW);
     sceGumStoreMatrix(&view_mat);
@@ -350,7 +358,7 @@ float xText3DPrint(xBitmapFont* font, float x, float y, float z, float fw_scale,
     sceGumMatrixMode(GU_MODEL);
     sceGumLoadIdentity();
     sceGumTranslate(&translate);
-    
+
     xGuTexMode(X_TFX_MODULATE, 1, 1);
     xTexSetImage(font->texture);
 
@@ -364,7 +372,7 @@ float xText3DPrint(xBitmapFont* font, float x, float y, float z, float fw_scale,
     sceGumMatrixMode(GU_VIEW);
     sceGumLoadMatrix(&view_mat);
     sceGumMatrixMode(GU_MODEL);
-    
+
     return text_length;
 }
 

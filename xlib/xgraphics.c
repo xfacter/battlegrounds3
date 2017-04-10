@@ -1,3 +1,11 @@
+/**
+ * This file belongs to the 'xlib' game engine.
+ * Copyright 2009 xfacter
+ * Copyright 2016 wickles
+ * This work is licensed under the LGPLv3
+ * subject to all terms as reproduced in the included LICENSE file.
+ */
+
 #include <pspgu.h>
 #include <pspgum.h>
 #include <pspdisplay.h>
@@ -53,13 +61,13 @@ void xGuInit()
 {
     if (x_initialized) return;
     x_initialized = 1;
-    
+
     #ifdef X_DLIST_DOUBLE
     x_which_list = 0;
     #endif
-    
+
     sceGuInit();
-    
+
     #ifndef X_DLIST_DOUBLE
     sceGuStart(GU_DIRECT, x_dlist0);
     #else
@@ -71,12 +79,12 @@ void xGuInit()
     x_draw_buf[1] = X_VREL(x_valloc(X_PIXEL_BYTES*X_SCREEN_STRIDE*X_SCREEN_HEIGHT));
     sceGuDrawBuffer(X_SCREEN_PSM, x_draw_buf[0], X_SCREEN_STRIDE);
     sceGuDispBuffer(X_SCREEN_WIDTH, X_SCREEN_HEIGHT, x_draw_buf[1], X_SCREEN_STRIDE);
-    
+
     sceGuOffset(2048 - (X_SCREEN_WIDTH/2), 2048 - (X_SCREEN_HEIGHT/2));
     sceGuViewport(2048, 2048, X_SCREEN_WIDTH, X_SCREEN_HEIGHT);
     sceGuScissor(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT);
     sceGuEnable(GU_SCISSOR_TEST);
-    
+
     #ifdef X_GRAPHICS_3D
     x_depth_buf = X_VREL(x_valloc(2*X_SCREEN_STRIDE*X_SCREEN_HEIGHT));
     sceGuDepthBuffer(x_depth_buf, X_SCREEN_STRIDE);
@@ -106,7 +114,7 @@ void xGuInit()
 	sceGuAmbientColor(0xFFFFFFFF);
 	sceGuTexOffset(0.0f, 0.0f);
 	sceGuTexScale(1.0f, 1.0f);
-    
+
     gumLoadIdentity(&x_ortho_mtx[0]);
     gumOrtho(&x_ortho_mtx[0], 0.0f, 480.0f, 272.0f, 0.0f, -1000.0f, 1000.0f);
     gumLoadIdentity(&x_ortho_mtx[1]);
@@ -117,7 +125,7 @@ void xGuInit()
     #ifndef X_GRAPHICS_3D
     xGuSetOrtho();
     #endif
-    
+
     sceGuDisplay(GU_TRUE);
 }
 
@@ -164,7 +172,7 @@ int xGuFrameEnd()
     {
         sceGuSetDither((ScePspIMatrix4*)(&x_dither_matrix[X_WHICH_DITHER]));
     }
-    
+
     /* begin next frame */
     #ifndef X_DLIST_DOUBLE
     sceGuStart(GU_DIRECT, x_dlist0);

@@ -1,3 +1,11 @@
+/**
+ * This file belongs to the 'xlib' game engine.
+ * Copyright 2009 xfacter
+ * Copyright 2016 wickles
+ * This work is licensed under the LGPLv3
+ * subject to all terms as reproduced in the included LICENSE file.
+ */
+
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -162,7 +170,7 @@ xObj* xObjLoad(char* filename, int optimize)
         xObjFree(object);
         return NULL;
     }
-    
+
     int i;
     char buffer[256];
     int num_texcoords = 0;
@@ -203,7 +211,7 @@ xObj* xObjLoad(char* filename, int optimize)
 		xObjFree(object);
 		return NULL;
 	}
-    
+
     ScePspFVector2* texcoords = (ScePspFVector2*)x_malloc(num_texcoords*sizeof(ScePspFVector2));
     ScePspFVector3* normals = (ScePspFVector3*)x_malloc(num_normals*sizeof(ScePspFVector3));
     ScePspFVector3* vertices = (ScePspFVector3*)x_malloc(num_verts*sizeof(ScePspFVector3));
@@ -216,7 +224,7 @@ xObj* xObjLoad(char* filename, int optimize)
 		xObjFree(object);
 		return NULL;
 	}
-    
+
 	int size = 0;
     if (num_texcoords > 0 && num_normals > 0)
     {
@@ -242,7 +250,7 @@ xObj* xObjLoad(char* filename, int optimize)
 		object->vtype = GU_VERTEX_32BITF;
 		size = sizeof(v_unopt_vertex);
     }
-    
+
     object->num_verts = num_tris*3;
     object->vertices = x_malloc(object->num_verts*size);
 	if (object->vertices == NULL)
@@ -263,7 +271,7 @@ xObj* xObjLoad(char* filename, int optimize)
 
 	ScePspFVector3 min = {HUGE_VAL, HUGE_VAL, HUGE_VAL};
 	ScePspFVector3 max = {-HUGE_VAL, -HUGE_VAL, -HUGE_VAL};
-	
+
     rewind(file);
 
     while(!feof(file))
@@ -412,7 +420,7 @@ xObj* xObjLoad(char* filename, int optimize)
 	sceKernelDcacheWritebackAll();
 
     fclose(file);
-	
+
 	X_LOG("Successfully loaded OBJ mesh.");
     return object;
 }

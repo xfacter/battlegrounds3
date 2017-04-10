@@ -1,3 +1,11 @@
+/**
+ * This file belongs to the 'xlib' game engine.
+ * Copyright 2009 xfacter
+ * Copyright 2016 wickles
+ * This work is licensed under the LGPLv3
+ * subject to all terms as reproduced in the included LICENSE file.
+ */
+
 #include <stdio.h>
 #include <math.h>
 #include <pspgu.h>
@@ -90,7 +98,7 @@ int xHeightmapSetupLOD(xHeightmapLOD* l, xHeightmap* h, int min_level)
         xHeightmapFreeLOD(l);
         return 1;
     }
-	
+
 	int x0, y0, x, y;
 	int index = 0;
 	for (y0 = 0; y0 < l->patches; y0++)
@@ -124,7 +132,7 @@ int xHeightmapSetupLOD(xHeightmapLOD* l, xHeightmap* h, int min_level)
 			index += 1;
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -374,7 +382,7 @@ void xHeightmapBuildLOD(xHeightmapLOD* l, ScePspFVector3* p, float start, float 
                         sceGuDrawArray(DRAW_PRIM, GU_TEXTURE_16BIT|GU_VERTEX_32BITF|GU_INDEX_16BIT|GU_TRANSFORM_3D, 2*length, indices, vertices);
                     }
                     indices += 2*(lod_width+1);
-                    
+
                     //draw sections containing seams as triangle fans
                     //up
                     if (subdiv[0] > subdiv[1])

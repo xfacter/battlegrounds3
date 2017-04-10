@@ -1,3 +1,11 @@
+/**
+ * This file belongs to the 'xlib' game engine.
+ * Copyright 2009 xfacter
+ * Copyright 2016 wickles
+ * This work is licensed under the LGPLv3
+ * subject to all terms as reproduced in the included LICENSE file.
+ */
+
 #include <pspgu.h>
 #include "xmem.h"
 #include "xmath.h"
@@ -9,7 +17,7 @@ xBuffer* xBufferConstruct(int psm, int width, int height)
 {
     xBuffer* b = (xBuffer*)x_malloc(sizeof(xBuffer));
     if (!b) return 0;
-    
+
     int Bpp = 0;
     switch (psm)
     {
@@ -116,14 +124,14 @@ void xBuffer4x4Pcf(xBuffer* a, xBuffer* b)
 	sceGuDisable(GU_DEPTH_TEST);
 	sceGuDisable(GU_DITHER);
 	sceGuDepthMask(GU_TRUE);
-	
+
 	sceGuBlendFunc(GU_ADD, GU_FIX, GU_FIX, 0x3f3f3f3f, 0x000000);
 	xGuDrawTexf(-1.5f, 1.5f, b->width, b->height, 0, 0, a->width, a->height);
 	sceGuBlendFunc(GU_ADD, GU_FIX, GU_FIX, 0x40404040, 0xffffffff);
 	xGuDrawTexf(0.5f, -1.5f, b->width, b->height, 0, 0, a->width, a->height);
 	xGuDrawTexf(-1.5f, 0.5f, b->width, b->height, 0, 0, a->width, a->height);
 	xGuDrawTexf(0.5f, 0.5f, b->width, b->height, 0, 0, a->width, a->height);
-	
+
 	sceGuDepthMask(GU_FALSE);
 	xGuLoadStates();
 	xGuRenderToScreen();

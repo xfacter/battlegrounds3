@@ -1,3 +1,11 @@
+/**
+ * This file belongs to the 'xlib' game engine.
+ * Copyright 2009 xfacter
+ * Copyright 2016 wickles
+ * This work is licensed under the LGPLv3
+ * subject to all terms as reproduced in the included LICENSE file.
+ */
+
 #include <pspgu.h>
 #include <pspgum.h>
 #include "xgraphics.h"
@@ -17,7 +25,7 @@ xParticleSystem* xParticleSystemConstruct(u16 max)
         xParticleSystemDestroy(s);
         return 0;
     }
-    
+
     xVec3Set(&s->pos, 0.0f, 0.0f, 0.0f);
     xVec3Set(&s->pos_rand, 0.0f, 0.0f, 0.0f);
     xVec3Set(&s->vel, 0.0f, 0.0f, 0.0f);
@@ -39,13 +47,13 @@ xParticleSystem* xParticleSystemConstruct(u16 max)
     s->num_particles = 0;
     s->max_particles = max;
 	s->render = 0;
-    
+
     int i;
     for (i = 0; i < s->max_particles; i++)
     {
         s->particle_stack[i] = i;
     }
-    
+
     return s;
 }
 
@@ -307,7 +315,7 @@ void xParticleSystemRender(xParticleSystem* s, ScePspFMatrix4* view)
 			break;
 		}
 	}
-    
+
 	sceGuShadeModel(GU_SMOOTH);
     sceGuDepthMask(GU_FALSE);
     xGuLoadStates();
