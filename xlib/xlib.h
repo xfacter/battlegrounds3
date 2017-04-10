@@ -1,5 +1,4 @@
-#ifndef __X_LIB_H__
-#define __X_LIB_H__
+#pragma once
 
 #include "xconfig.h"
 
@@ -15,6 +14,4 @@ extern int xMain();
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

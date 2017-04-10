@@ -1,5 +1,4 @@
-#ifndef __VALUES_H__
-#define __VALUES_H__
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -140,6 +139,4 @@ extern const int bg3_game_spawns[];
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

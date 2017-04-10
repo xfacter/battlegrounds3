@@ -1,5 +1,4 @@
-#ifndef __MAP_H__
-#define __MAP_H__
+#pragma once
 
 #include "xlib/xconfig.h"
 #include "xlib/xheightmap.h"
@@ -69,5 +68,3 @@ int bg3_astar_to_map(bg3_map* m, int id);
 bg3_map_preview* bg3_load_map_preview(int id);
 
 void bg3_free_map_preview(bg3_map_preview* p);
-
-#endif

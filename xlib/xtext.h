@@ -1,8 +1,11 @@
-#ifndef __X_TEXT_H__
-#define __X_TEXT_H__
+#pragma once
 
 #include "xconfig.h"
 #include "xtexture.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define X_ALIGN_LEFT   (0)
 #define X_ALIGN_CENTER (1)
@@ -50,4 +53,6 @@ float xText3DPrint(ScePspFVector3* pos, float char_scale, float height, char* te
 float xText3DPrintf(ScePspFVector3* pos, float char_scale, float height, char* text, ... );
 */
 
+#ifdef __cplusplus
+}
 #endif

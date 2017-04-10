@@ -1,5 +1,4 @@
-#ifndef __X_SOUND_H__
-#define __X_SOUND_H__
+#pragma once
 
 #include "xconfig.h"
 
@@ -96,6 +95,4 @@ void xSound3dUpdate();
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

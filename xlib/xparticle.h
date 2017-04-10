@@ -1,5 +1,4 @@
-#ifndef __X_PARTICLE_H__
-#define __X_PARTICLE_H__
+#pragma once
 
 #include "xconfig.h"
 
@@ -79,6 +78,4 @@ void xParticleSystemRender(xParticleSystem* s, ScePspFMatrix4* view);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

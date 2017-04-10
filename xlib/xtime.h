@@ -1,5 +1,4 @@
-#ifndef __X_TIME_H__
-#define __X_TIME_H__
+#pragma once
 
 #include "xconfig.h"
 
@@ -15,6 +14,4 @@ float xTimeSecPassed();
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

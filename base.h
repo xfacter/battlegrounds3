@@ -1,5 +1,4 @@
-#ifndef __GAME_H__
-#define __GAME_H__
+#pragma once
 
 #include "xlib/xconfig.h"
 #include "xlib/xparticle.h"
@@ -343,5 +342,3 @@ void bg3_add_powerup(bg3_powerups* p, ScePspFVector3* pos, int type, int respawn
 void bg3_update_powerups(bg3_powerups* p, bg3_base* base, float dt);
 
 void bg3_draw_powerups(bg3_powerups* p, bg3_base* base, ScePspFMatrix4* view);
-
-#endif

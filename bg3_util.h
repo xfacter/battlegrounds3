@@ -1,5 +1,4 @@
-#ifndef __BG3_UTIL__
-#define __BG3_UTIL__
+#pragma once
 
 #include "xlib/xconfig.h"
 #include "xlib/xbuffer.h"
@@ -98,6 +97,4 @@ int bg3_check_visibility(xHeightmap* h, ScePspFVector3* eye, ScePspFVector3* cen
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

@@ -1,5 +1,4 @@
-#ifndef __X_GRAPHICS_H__
-#define __X_GRAPHICS_H__
+#pragma once
 
 #include "xconfig.h"
 
@@ -101,6 +100,4 @@ void xGuDrawTexf(float x, float y, float w, float h, float tx, float ty, float t
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

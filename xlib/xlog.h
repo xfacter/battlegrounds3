@@ -1,5 +1,4 @@
-#ifndef __X_LOG_H__
-#define __X_LOG_H__
+#pragma once
 
 #include "xconfig.h"
 
@@ -13,6 +12,4 @@ void xLogPrintf(char* text, ... );
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

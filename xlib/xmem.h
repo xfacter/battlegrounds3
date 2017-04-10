@@ -1,5 +1,4 @@
-#ifndef __X_MEMORY_H__
-#define __X_MEMORY_H__
+#pragma once
 
 #include "xconfig.h"
 
@@ -61,6 +60,4 @@ u32 x_slargest();
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
