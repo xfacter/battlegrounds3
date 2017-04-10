@@ -1,4 +1,5 @@
 *.o
+*.d
 *.prx
 *.elf
 *.PBP

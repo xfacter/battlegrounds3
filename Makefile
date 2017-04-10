@@ -1,13 +1,38 @@
-BINDIR = ./bin
+LOCAL_BIN = bin
+LOCAL_SRC = src
+LOCAL_TMP = tmp
+LOCAL_PBP = $(LOCAL_BIN)
+LOCAL_DIST_STAGING = bin.staging
+LOCAL_DIST_RELEASE = bin.release
 
-BUILD_PRX = 1
-TARGET = $(BINDIR)/Battlegrounds3
-EXTRA_TARGETS = $(BINDIR)/EBOOT.PBP
-PSP_EBOOT = $(BINDIR)/EBOOT.PBP
-PSP_EBOOT_SFO = $(BINDIR)/PARAM.SFO
+LOCAL_RESOURCES = data maps skies
+LOCAL_RES_PATHS:= $(addprefix $(LOCAL_BIN)/,$(LOCAL_RESOURCES))
+LOCAL_MODULES = xlib
+LOCAL_MOD_SRC:= $(addprefix $(LOCAL_SRC)/,$(LOCAL_MODULES))
+LOCAL_MOD_TMP:= $(addprefix $(LOCAL_TMP)/,$(LOCAL_MODULES))
+LOCAL_MKDIRS := $(shell mkdir -p $(LOCAL_TMP) $(LOCAL_MOD_TMP))
+
 PSP_EBOOT_TITLE = Battlegrounds3
+PSP_EBOOT_SFO = $(LOCAL_BIN)/PARAM.SFO
+PSP_EBOOT_ICON = $(LOCAL_PBP)/icon0.png
+#PSP_EBOOT_ICON1 = $(LOCAL_PBP)/icon1.pmf
+#PSP_EBOOT_UNKPNG = $(LOCAL_PBP)/pic0.png
+#PSP_EBOOT_PIC1 = $(LOCAL_PBP)/pic1.png
+#PSP_EBOOT_SND0 = $(LOCAL_PBP)/snd0.at3
+#PSP_EBOOT_PSAR = $(LOCAL_PBP)/data.psar
+PSP_EBOOT = $(LOCAL_BIN)/EBOOT.PBP
+EXTRA_TARGETS = $(PSP_EBOOT)
 
-CFLAGS = -g -Wall -O3
+#BUILD_PRX = 1
+TARGET = $(LOCAL_BIN)/$(PSP_EBOOT_TITLE)
+
+SRC_FILES := $(wildcard $(LOCAL_SRC)/*.c)
+SRC_FILES += $(foreach sdir,$(LOCAL_MOD_SRC),$(wildcard $(sdir)/*.c))
+OBJ_FILES := $(patsubst $(LOCAL_SRC)/%.c,$(LOCAL_TMP)/%.o,$(SRC_FILES))
+OBJS = $(OBJ_FILES)
+
+# show warnings and generate dependency graphs (in .d files)
+CFLAGS = -Wall -MMD
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
@@ -15,57 +40,48 @@ LIBDIR =
 LIBS = -lpspgum_vfpu -lpspvfpu -lpspgu -lpspaudiolib -lpspaudio -lpsprtc -lm
 LDFLAGS =
 
-OBJS = main.o xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xsound.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o values.o bg3_util.o map.o astar.o base.o game.o menu.o
 
+# define targets here (note some definitions also exist in pspsdk's build.mak)
+# TODO:
+# 	make separate build dirs for different distribution types
+# 	move assets to own folder, rsync for all distribution types
+
+debug: CFLAGS += -O0 -DDEBUG -g3 #-gdwarf
+debug: mkflags all
+
+staging: CFLAGS += -O2 -g #-gdwarf
+#staging: EXTRA_TARGETS = $(PSP_EBOOT)
+staging: clean mkflags all #staging_more
+	mkdir -p $(LOCAL_DIST_STAGING)
+	rsync -r $(PSP_EBOOT) $(LOCAL_RES_PATHS) $(LOCAL_DIST_STAGING)
+
+release: CFLAGS += -O3 #-g -gdwarf
+#release: EXTRA_TARGETS = $(PSP_EBOOT)
+release: clean mkflags all #release_more
+	mkdir -p $(LOCAL_DIST_RELEASE)
+	rsync -r $(PSP_EBOOT) $(LOCAL_RES_PATHS) $(LOCAL_DIST_RELEASE)
+
+clean: clean_more
+
+clean_more:
+	-rm -rf $(LOCAL_DIST_STAGING) $(LOCAL_DIST_RELEASE)
+
+clean_all: clean
+	-rm -rf $(LOCAL_TMP)
+
+.PHONY: mkflags
+mkflags: CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
+mkflags: ASFLAGS = $(CFLAGS)
+
+## generally no need to edit below this line!
+
+#.PHONY: clean
 PSPSDK=$(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
 
-*.o: xlib/xconfig.h
+# include generated dependency graph files (see -MMD flag)
+-include $(OBJ_FILES:.o=.d)
 
-xlib/xlib.o: xlib/xlib.c xlib/xlib.h
+$(OBJ_FILES): $(LOCAL_TMP)/%.o: $(LOCAL_SRC)/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
 
-xlib/xmem.o: xlib/xmem.c xlib/xmem.h
-
-xlib/xlog.o: xlib/xlog.c xlib/xlog.h
-
-xlib/xmath.o: xlib/xmath.c xlib/xmath.h
-
-xlib/xtime.o: xlib/xtime.c xlib/xtime.h
-
-xlib/xctrl.o: xlib/xctrl.c xlib/xctrl.h
-
-xlib/xgraphics.o: xlib/xgraphics.c xlib/xgraphics.h
-
-xlib/xtexture.o: xlib/xtexture.c xlib/xtexture.h
-
-xlib/xtext.o: xlib/xtext.c xlib/xtext.h
-
-xlib/xsound.o: xlib/xsound.c xlib/xsound.h
-
-xlib/xobj.o: xlib/xobj.c xlib/xobj.h
-
-xlib/xheightmap.o: xlib/xheightmap.c xlib/xheightmap.h
-
-xlib/xini.o: xlib/xini.c xlib/xini.h
-
-xlib/xparticle.o: xlib/xparticle.c xlib/xparticle.h
-
-xlib/xbuffer.o: xlib/xbuffer.c xlib/xbuffer.h
-
-values.o: values.c values.h
-
-bg3_util.o: bg3_util.c bg3_util.h
-
-map.o: map.c map.h
-
-astar.o: astar.c astar.h
-
-base.o: base.c base.h map.o values.o bg3_util.o
-
-game.o: game.c game.h base.o values.o bg3_util.o
-
-menu.o: menu.c menu.h base.o values.o bg3_util.o
-
-main.o: main.c xlib/xlib.o xlib/xmem.o xlib/xlog.o xlib/xmath.o xlib/xtime.o xlib/xctrl.o xlib/xgraphics.o xlib/xtexture.o xlib/xtext.o xlib/xsound.o xlib/xobj.o xlib/xheightmap.o xlib/xini.o xlib/xparticle.o xlib/xbuffer.o values.o bg3_util.o map.o astar.o base.o game.o menu.o
-
-EBOOT.PBP: main.o
