@@ -1,107 +1,125 @@
-LOCAL_BIN = bin
-LOCAL_SRC = src
-LOCAL_TMP = tmp
-LOCAL_PBP = Bundle
-LOCAL_RES = Assets
-#LOCAL_DIST_STAGING = bin.staging
-#LOCAL_DIST_RELEASE = bin.release
+### PROJECT SETTINGS ###
+BIN_NAME = bg3
+PBP_PATH = Bundle
+RES_PATH = Assets
+SRC_PATH = src
+SRC_EXT = c
+#BASE_BIN = bin
+#BASE_BUILD = build
 
-LOCAL_RESOURCES = data maps skies
-LOCAL_RES_PATHS:= $(addprefix $(LOCAL_BIN)/,$(LOCAL_RESOURCES))
-LOCAL_MODULES = xlib
-LOCAL_MOD_SRC:= $(addprefix $(LOCAL_SRC)/,$(LOCAL_MODULES))
-LOCAL_MOD_TMP:= $(addprefix $(LOCAL_TMP)/,$(LOCAL_MODULES))
-LOCAL_MKDIRS := $(shell mkdir -p $(LOCAL_BIN) $(LOCAL_TMP) $(LOCAL_MOD_TMP))
-
-# Define basic variables for PSPSDK. Refer to $(PSPSDK)/lib/build.mak
+# Define basic configuration for PSPSDK. Refer to $(PSPSDK)/lib/build.mak
 PSPSDK=$(shell psp-config --pspsdk-path)
-#BUILD_PRX = 1
+BUILD_PRX = 1
 PSP_EBOOT_TITLE = Battlegrounds3
-PSP_EBOOT_ICON = $(LOCAL_PBP)/icon0.png
-#PSP_EBOOT_ICON1 = $(LOCAL_PBP)/icon1.pmf
-#PSP_EBOOT_UNKPNG = $(LOCAL_PBP)/pic0.png
-#PSP_EBOOT_PIC1 = $(LOCAL_PBP)/pic1.png
-#PSP_EBOOT_SND0 = $(LOCAL_PBP)/snd0.at3
-#PSP_EBOOT_PSAR = $(LOCAL_PBP)/data.psar
-PSP_EBOOT_SFO = $(LOCAL_TMP)/PARAM.SFO
-PSP_EBOOT = $(LOCAL_BIN)/EBOOT.PBP
+PSP_EBOOT_ICON = $(PBP_PATH)/icon0.png
+#PSP_EBOOT_ICON1 = $(PBP_PATH)/icon1.pmf
+#PSP_EBOOT_UNKPNG = $(PBP_PATH)/pic0.png
+#PSP_EBOOT_PIC1 = $(PBP_PATH)/pic1.png
+#PSP_EBOOT_SND0 = $(PBP_PATH)/snd0.at3
+#PSP_EBOOT_PSAR = $(PBP_PATH)/data.psar
+PSP_EBOOT_SFO = $(BUILD_PATH)/PARAM.SFO
+PSP_EBOOT = $(BIN_PATH)/EBOOT.PBP
 EXTRA_TARGETS = $(PSP_EBOOT)
-TARGET = $(LOCAL_BIN)/$(PSP_EBOOT_TITLE)
+TARGET = $(BUILD_PATH)/$(BIN_NAME)
 
-SRC_FILES := $(wildcard $(LOCAL_SRC)/*.c)
-SRC_FILES += $(foreach sdir,$(LOCAL_MOD_SRC),$(wildcard $(sdir)/*.c))
-OBJ_FILES := $(patsubst $(LOCAL_SRC)/%.c,$(LOCAL_TMP)/%.o,$(SRC_FILES))
-OBJS = $(OBJ_FILES)
-DEPS = $(OBJS:.o=.d)
-
-# show warnings and generate dependency graphs (in .d files)
-CFLAGS = -Wall -MMD
-# optimize CXX execution by disabling exception handling and virtual types/functions
-CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
+# C, C++, ASM flags
+CFLAGS = -Wall #-std=c99
+CXXFLAGS = -fno-exceptions -fno-rtti # some optimizations
 ASFLAGS = $(CFLAGS)
-# additional flags depending on distribution
-CFLAGS_DBG = -O0 -g3 -DDEBUG #-gdwarf
-CFLAGS_STG = -O2 -g #-gdwarf
-CFLAGS_RLS = -O3 -g #-gdwarf
+# additional flags depending on build type
+CFLAGS_RLS = -O3 -g -D NDEBUG #-gdwarf
+CFLAGS_DBG = -O1 -g3 -D DEBUG #-gdwarf
 
+# include and lib paths
 INCDIR =
 LIBDIR =
 LIBS = -lpspgum_vfpu -lpspvfpu -lpspgu -lpspaudiolib -lpspaudio -lpsprtc -lm
 LDFLAGS =
+### END PROJECT SETTINGS ###
 
+# Generally should not need to edit below this line
 
-# define targets here (note preexisting targets 'all' and 'clean' in $(PSPSDK)/lib/build.mak))
-# TODO:
-# 	make separate build dirs for different distribution types
-# 	move assets to own folder, rsync for all distribution types
+# Install destination
+ifeq ($(DESTDIR),)
+	DESTDIR = $(PSP_ROOT)
+endif
+ifeq ($(DESTDIR),)
+	DESTDIR = $(HOME)/psproot
+endif
+INSTALL_PREFIX = /PSP/GAME
+INSTALL_PATH = $(DESTDIR)$(INSTALL_PREFIX)/$(BIN_NAME)
 
-debug: CFLAGS_OPT = $(CFLAGS_DBG)
-debug: CFLAGS += $(CFLAGS_OPT)
-debug: CXXFLAGS += $(CFLAGS_OPT)
-debug: ASFLAGS += $(CFLAGS_OPT)
-debug: all deploy
-# remember to `make clean` again after building a different distribution!
+# Programs for installation
+INSTALL = install
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA = $(INSTALL) -m 644
 
-staging: CFLAGS_OPT = $(CFLAGS_STG)
-staging: CFLAGS += $(CFLAGS_OPT)
-staging: CXXFLAGS += $(CFLAGS_OPT)
-staging: ASFLAGS += $(CFLAGS_OPT)
-staging: clean_tmp all #staging_more
-#	mkdir -p $(LOCAL_DIST_STAGING)
-#	rsync -r $(PSP_EBOOT) $(LOCAL_RES_PATHS) $(LOCAL_DIST_STAGING)
+# Build and output paths
+release: export BUILD_PATH := build/release
+release: export BIN_PATH := bin/release
+debug: export BUILD_PATH := build/debug
+debug: export BIN_PATH := bin/debug
+install: export BIN_PATH := bin/release
 
+SRC_FILES := $(shell find $(SRC_PATH) -name '*.$(SRC_EXT)' -type f)
+#OBJ_FILES = $(patsubst $(LOCAL_SRC)/%.c,$(BUILD_PATH)/%.o,$(SRC_FILES))
+OBJ_FILES = $(SRC_FILES:$(SRC_PATH)/%.$(SRC_EXT)=$(BUILD_PATH)/%.o)
+OBJS = $(OBJ_FILES)
+DEPS = $(OBJS:.o=.d)
 
+.PHONY: release
 release: CFLAGS_OPT = $(CFLAGS_RLS)
 release: CFLAGS += $(CFLAGS_OPT)
-release: CXXFLAGS += $(CFLAGS_OPT)
-release: ASFLAGS += $(CFLAGS_OPT)
-release: clean_tmp all #release_more
-#	mkdir -p $(LOCAL_DIST_RELEASE)
-#	rsync -r $(PSP_EBOOT) $(LOCAL_RES_PATHS) $(LOCAL_DIST_RELEASE)
+release: dirs deploy
+	@$(MAKE) all
 
+.PHONY: debug
+debug: CFLAGS_OPT = $(CFLAGS_DBG)
+debug: CFLAGS += $(CFLAGS_OPT)
+debug: dirs deploy
+	@$(MAKE) all
+
+.PHONY: dirs
+dirs:
+	@echo "Creating directories ..."
+	mkdir -p $(sort $(dir $(OBJ_FILES))) $(BIN_PATH)
+
+.PHONY: deploy
 deploy:
-	rsync -a $(LOCAL_RES)/ $(LOCAL_BIN)
+	rsync -a README.md $(RES_PATH)/ $(BIN_PATH)
 
-clean: clean_more
+.PHONY: install
+install:
+	@echo "Installing to PSP ..."
+	mkdir -p $(INSTALL_PATH)
+	rsync -a $(BIN_PATH)/ $(INSTALL_PATH)
 
-clean_more:
-	-rm -rf $(LOCAL_TMP) #$(LOCAL_DIST_STAGING) $(LOCAL_DIST_RELEASE)
+.PHONY: uninstall
 
-clean_tmp:
-	-rm $(OBJS) $(DEPS)
+.PHONY: clean_all
+clean_all:
+	$(RM) -r bin build
 
-raze: clean
-	-rm -rf $(LOCAL_BIN)
+.PHONY: clean
+clean: clean_all
 
-
-## generally no need to edit below this line
-
-#.PHONY: clean
+.PHONY: all
 include $(PSPSDK)/lib/build.mak
+# NOTE the PSPSDK makefile defines the standard targets as:
+# all: $(EXTRA_TARGETS) $(FINAL_TARGET)
+# clean:
+#     -rm -f $(FINAL_TARGET) $(EXTRA_CLEAN) $(OBJS) $(PSP_EBOOT_SFO) $(PSP_EBOOT) $(EXTRA_TARGETS)
+# $(TARGET).elf: $(OBJS) $(EXPORT_OBJ)
+#     $(LINK.c) $^ $(LIBS) -o $@
+# NOTE the PSPSDK makefile redefines compile flags as:
+# CFLAGS   := $(addprefix -I,$(INCDIR)) $(CFLAGS)
+# CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
+# ASFLAGS  := $(CFLAGS) $(ASFLAGS)
+# LDFLAGS  := $(addprefix -L,$(LIBDIR)) $(LDFLAGS)
 
-# include generated dependency graph files (Refer to gcc flag '-MMD')
+# Add dependency files, if they exist
 -include $(DEPS)
 
-$(OBJS): $(LOCAL_TMP)/%.o: $(LOCAL_SRC)/%.c
-	$(CC) -c $(CFLAGS) $< -o $@
-
+#$(OBJS): $(BUILD_PATH)/%.o: $(SRC_PATH)/%.c
+$(BUILD_PATH)/%.o: $(SRC_PATH)/%.c
+	$(CC) -MP -MMD -c $(CFLAGS) $< -o $@

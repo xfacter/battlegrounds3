@@ -4,5 +4,7 @@
 *.elf
 *.PBP
 *.SFO
-/bin/
-/tmp/
+[Bb]in/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
