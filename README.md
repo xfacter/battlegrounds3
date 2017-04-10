@@ -27,6 +27,15 @@ It's straightforward to make maps. All map files go in a folder named with a 2-d
 
 You can use any heightmap tools that support the .raw and .tga files as described.
 
+## Build
+
+To build the project:
+
+1. Install [psptoolchain](https://github.com/pspdev/psptoolchain/)
+1. `make [release|debug]`
+1. `make install`
+  - Installs to `$DESTDIR` or `$PSP_ROOT` or `~/psproot`
+
 ## Credits
 
 * Author / Maintainer -- [xfacter](https://battlegroundspsp.wordpress.com/)
