@@ -15,10 +15,14 @@
 extern "C" {
 #endif
 
-#define X_EPSILON 1e-6
+#define X_PI     (3.1415926536f)
+#define X_EULER  (2.7182818285f)
+#define X_ROOT2  (1.4142135624f)
+#define X_ROOT3  (1.7320508076f)
+#define X_EPSILON (1.0e-6)
 
-#define DEG_TO_RAD(DEG) ((DEG)*M_PI/180)
-#define RAD_TO_DEG(RAD) ((RAD)*180/M_PI)
+#define DEG_TO_RAD(DEG) ((DEG)*X_PI/180)
+#define RAD_TO_DEG(RAD) ((RAD)*180/X_PI)
 #define SQR(X) ((X)*(X))
 
 /* possibly add an error variable to see if a domain or other error occurred */

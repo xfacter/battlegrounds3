@@ -267,12 +267,12 @@ float x_atan2f(float y, float x)
     if (fabsf(x) >= fabsf(y))
     {
         result = x_atanf(y/x);
-        if (x < 0.0f) result += (y>=0.0f ? M_PI : -M_PI);
+        if (x < 0.0f) result += (y>=0.0f ? X_PI : -X_PI);
     }
     else
     {
         result = -x_atanf(x/y);
-        result += (y < 0.0f ? -M_PI/2 : M_PI/2);
+        result += (y < 0.0f ? -X_PI/2 : X_PI/2);
     }
     return result;
 }

@@ -22,7 +22,7 @@ TARGET = $(BUILD_PATH)/$(BIN_NAME)
 BUILD_PRX = 1
 
 # C, C++, ASM flags
-CFLAGS = -Wall #-std=c99
+CFLAGS = -Wall -std=c99
 CXXFLAGS = -fno-exceptions -fno-rtti # some optimizations
 ASFLAGS = $(CFLAGS)
 # additional flags depending on build type

@@ -556,11 +556,11 @@ void bg3_game_process_ai(bg3_base* base, float dt)
 						//vision-based movement
 						xVector3f fwd, left, right;
 						xVec3Normalize(&fwd, (xVector3f*)&players[i].tank_dir);
-						fwd.z = x_tanf(M_PI/12);
+						fwd.z = x_tanf(X_PI/12);
 						left = fwd;
-						x_rotatez((ScePspFVector3*)&left, M_PI/6);
+						x_rotatez((ScePspFVector3*)&left, X_PI/6);
 						right = fwd;
-						x_rotatez((ScePspFVector3*)&right, -M_PI/6);
+						x_rotatez((ScePspFVector3*)&right, -X_PI/6);
 
 						float t_fwd = bg3_ray_heightmap_collision(&map->hmp, 0, &players[i].cam_orig, (ScePspFVector3*)&fwd, AI_VISION_MAX, X_EPSILON);
 						float t_left = bg3_ray_heightmap_collision(&map->hmp, 0, &players[i].cam_orig, (ScePspFVector3*)&left, AI_VISION_MAX, X_EPSILON);

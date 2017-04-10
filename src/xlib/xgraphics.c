@@ -157,7 +157,7 @@ int xGuFrameEnd()
     #ifdef X_DLIST_DOUBLE
     sceGuStart(GU_DIRECT, x_call_list);
     sceGuCallList((x_which_list == 0 ? x_dlist0 : x_dlist1));
-    sceGuFinith();
+    sceGuFinish();
     x_which_list ^= 1;
     #endif
     if (x_states & X_PSEUDO_AA)

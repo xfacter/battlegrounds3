@@ -46,7 +46,7 @@ bg3_map* bg3_load_map(int id)
 	}
 	m->ambient = xIniGetFloat(file, "ambient", 0.0f);
 	m->intensity= xIniGetFloat(file, "intensity", 0.0f);
-	float direction = DEG_TO_RAD(90.0f - xIniGetFloat(file, "direction", 0.0f)) + M_PI;
+	float direction = DEG_TO_RAD(90.0f - xIniGetFloat(file, "direction", 0.0f)) + X_PI;
 	float pitch = DEG_TO_RAD(xIniGetFloat(file, "pitch", 0.0f));
 	m->light_pos.x = x_cosf(direction)*x_cosf(pitch);
 	m->light_pos.y = x_sinf(direction)*x_cosf(pitch);
