@@ -9,9 +9,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <pspgu.h>
-#include "xlib/xmem.h"
-#include "xlib/xini.h"
-#include "xlib/xmath.h"
+#include "xlab/xmem.h"
+#include "xlab/xini.h"
+#include "xlab/xmath.h"
 #include "values.h"
 
 #include "map.h"

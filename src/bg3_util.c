@@ -10,10 +10,10 @@
 #include <math.h>
 #include <pspgu.h>
 #include <pspgum.h>
-#include "xlib/xmem.h"
-#include "xlib/xmath.h"
-#include "xlib/xgraphics.h"
-#include "xlib/xtext.h"
+#include "xlab/xmem.h"
+#include "xlab/xmath.h"
+#include "xlab/xgraphics.h"
+#include "xlab/xtext.h"
 
 #include "bg3_util.h"
 

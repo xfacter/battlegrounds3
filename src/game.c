@@ -8,12 +8,12 @@
 
 #include <pspgu.h>
 #include <pspgum.h>
-#include "xlib/xmath.h"
-#include "xlib/xlib.h"
-#include "xlib/xtime.h"
-#include "xlib/xctrl.h"
-#include "xlib/xgraphics.h"
-#include "xlib/xsound.h"
+#include "xlab/xmath.h"
+#include "xlab/xlab.h"
+#include "xlab/xtime.h"
+#include "xlab/xctrl.h"
+#include "xlab/xgraphics.h"
+#include "xlab/xsound.h"
 
 #include "game.h"
 

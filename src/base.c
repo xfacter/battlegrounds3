@@ -10,9 +10,9 @@
 #include <string.h>
 #include <pspgu.h>
 #include <pspgum.h>
-#include "xlib/xmem.h"
-#include "xlib/xmath.h"
-#include "xlib/xini.h"
+#include "xlab/xmem.h"
+#include "xlab/xmath.h"
+#include "xlab/xini.h"
 
 #include "base.h"
 

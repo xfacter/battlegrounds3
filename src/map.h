@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "xlib/xconfig.h"
-#include "xlib/xheightmap.h"
-#include "xlib/xtexture.h"
+#include "xlab/xconfig.h"
+#include "xlab/xheightmap.h"
+#include "xlab/xtexture.h"
 #include "astar.h"
 
 #define ENV_DESERT		0

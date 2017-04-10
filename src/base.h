@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "xlib/xconfig.h"
-#include "xlib/xparticle.h"
-#include "xlib/xtexture.h"
-#include "xlib/xtext.h"
-#include "xlib/xobj.h"
-#include "xlib/xsound.h"
+#include "xlab/xconfig.h"
+#include "xlab/xparticle.h"
+#include "xlab/xtexture.h"
+#include "xlab/xtext.h"
+#include "xlab/xobj.h"
+#include "xlab/xsound.h"
 #include "map.h"
 #include "astar.h"
 #include "bg3_util.h"

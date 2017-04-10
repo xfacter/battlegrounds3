@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "xlib/xconfig.h"
-#include "xlib/xbuffer.h"
-#include "xlib/xheightmap.h"
-#include "xlib/xtexture.h"
+#include "xlab/xconfig.h"
+#include "xlab/xbuffer.h"
+#include "xlab/xheightmap.h"
+#include "xlab/xtexture.h"
 
 #ifdef __cplusplus
 extern "C" {

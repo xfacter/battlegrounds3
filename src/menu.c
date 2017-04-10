@@ -9,12 +9,12 @@
 #include <stdarg.h>
 #include <pspgu.h>
 #include <pspgum.h>
-#include "xlib/xmath.h"
-#include "xlib/xmem.h"
-#include "xlib/xlib.h"
-#include "xlib/xtime.h"
-#include "xlib/xctrl.h"
-#include "xlib/xgraphics.h"
+#include "xlab/xmath.h"
+#include "xlab/xmem.h"
+#include "xlab/xlab.h"
+#include "xlab/xtime.h"
+#include "xlab/xctrl.h"
+#include "xlab/xgraphics.h"
 
 #include "menu.h"
 

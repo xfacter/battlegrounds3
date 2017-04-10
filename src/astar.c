@@ -10,7 +10,7 @@
 #include <string.h>
 #include "astar.h"
 
-#include "xlib/xmem.h"
+#include "xlab/xmem.h"
 #define malloc(x) x_malloc(x)
 #define free(x) x_free(x)
 
