@@ -102,8 +102,8 @@ enum bg3_state {
 
 enum bg3_game_type {
 	BG3_GAME_DM,
-	BG3_GAME_TDM,
-	BG3_GAME_CTF
+	//BG3_GAME_TDM,
+	//BG3_GAME_CTF
 };
 
 enum bg3_transition {

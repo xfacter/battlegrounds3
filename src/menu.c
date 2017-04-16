@@ -33,8 +33,7 @@
 #define MENU_FADE_TIME 1.0f
 
 /* main menu
-	- Singleplayer
-	- Multiplayer
+	- Deathmatch
 	- Stats
 	- Options
 	- Quit
@@ -43,8 +42,8 @@
 enum menu_screens {
 	MENU_SCREEN_PRESS_START,
 	MENU_SCREEN_MAIN,
-	MENU_SCREEN_SINGLEPLAYER,
-	MENU_SCREEN_MULTIPLAYER,
+	//MENU_SCREEN_SINGLEPLAYER,
+	//MENU_SCREEN_MULTIPLAYER,
 	MENU_SCREEN_STATS,
 	MENU_SCREEN_OPTIONS,
 	MENU_SCREEN_QUIT,
@@ -300,79 +299,39 @@ void bg3_menu_loop(bg3_base* base)
 			}
 			if (xCtrlTap(PSP_CTRL_DOWN))
 			{
-				if (selection < 4)
+				if (selection < 3)
 					selection += 1;
 			}
 			if (xCtrlTap(PSP_CTRL_CROSS))
 			{
 				switch (selection)
 				{
-				case 0: screen = MENU_SCREEN_SINGLEPLAYER; break;
-				case 1: screen = MENU_SCREEN_MULTIPLAYER; break;
-				case 2:
+				case 0:
+					game_values.game_type = BG3_GAME_DM;
+					screen = MENU_SCREEN_CHOOSE_MAP;
+					interp = INTERP_NONE;
+					interp_time = 0.0f;
+					break;
+				case 1:
 					bg3_load_stats(&stats);
 					screen = MENU_SCREEN_STATS;
 					break;
-				case 3:
+				case 2:
 					inverted = base->inverted;
 					deadzone = base->deadzone;
 					control_style = base->control_style;
 					screen = MENU_SCREEN_OPTIONS;
 					break;
-				case 4: screen = MENU_SCREEN_QUIT; break;
+				case 3: screen = MENU_SCREEN_QUIT; break;
 				}
 				selection = 0;
-			}
-			break;
-		case MENU_SCREEN_SINGLEPLAYER:
-			if (xCtrlTap(PSP_CTRL_UP))
-			{
-				if (selection > 0)
-					selection -= 1;
-			}
-			if (xCtrlTap(PSP_CTRL_DOWN))
-			{
-				if (selection < 3)
-					selection += 1;
-			}
-			if (xCtrlTap(PSP_CTRL_CROSS))
-			{
-				if (selection < 3)
-				{
-					switch (selection)
-					{
-					case 0: game_values.game_type = BG3_GAME_DM; break;
-					case 1: game_values.game_type = BG3_GAME_TDM; break;
-					case 2: game_values.game_type = BG3_GAME_CTF; break;
-					}
-					screen = MENU_SCREEN_CHOOSE_MAP;
-					interp = INTERP_NONE;
-					interp_time = 0.0f;
-				}
-				else
-				{
-					screen = MENU_SCREEN_MAIN;
-				}
-				selection = 0;
-			}
-			if (xCtrlTap(PSP_CTRL_CIRCLE))
-			{
-				screen = MENU_SCREEN_MAIN;
-				selection = 0;
-			}
-			break;
-		case MENU_SCREEN_MULTIPLAYER:
-			if (xCtrlTap(PSP_CTRL_CROSS) || xCtrlTap(PSP_CTRL_CIRCLE))
-			{
-				screen = MENU_SCREEN_MAIN;
-				selection = 1;
 			}
 			break;
 		case MENU_SCREEN_STATS:
 			if (xCtrlTap(PSP_CTRL_CROSS) || xCtrlTap(PSP_CTRL_CIRCLE))
 			{
 				screen = MENU_SCREEN_MAIN;
-				selection = 2;
+				selection = 1;
 			}
 			break;
 		case MENU_SCREEN_OPTIONS:
@@ -444,14 +403,14 @@ void bg3_menu_loop(bg3_base* base)
 			if (xCtrlTap(PSP_CTRL_CIRCLE))
 			{
 				screen = MENU_SCREEN_MAIN;
-				selection = 3;
+				selection = 2;
 			}
 			break;
 		case MENU_SCREEN_QUIT:
 			if (xCtrlTap(PSP_CTRL_CIRCLE))
 			{
 				screen = MENU_SCREEN_MAIN;
-				selection = 4;
+				selection = 3;
 			}
 			if (xCtrlTap(PSP_CTRL_LEFT) || xCtrlTap(PSP_CTRL_RIGHT))
 			{
@@ -463,7 +422,7 @@ void bg3_menu_loop(bg3_base* base)
 				if (xCtrlTap(PSP_CTRL_CROSS))
 				{
 					screen = MENU_SCREEN_MAIN;
-					selection = 4;
+					selection = 3;
 				}
 				break;
 			case 1:
@@ -509,7 +468,7 @@ void bg3_menu_loop(bg3_base* base)
 				}
 				if (xCtrlTap(PSP_CTRL_CIRCLE))
 				{
-					screen = MENU_SCREEN_SINGLEPLAYER;
+					screen = MENU_SCREEN_MAIN;
 					selection = 0;
 				}
 			}
@@ -845,20 +804,18 @@ void bg3_menu_loop(bg3_base* base)
 			else
 			{
 
-				bg3_draw_box(X_SCREEN_WIDTH/2-MENU_BOX_WIDTH/2, MENU_BOX_Y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, 0x7f555555, 0xff000000);
-
 				switch (screen)
 				{
 				case MENU_SCREEN_MAIN:
+					bg3_draw_box(X_SCREEN_WIDTH/2-MENU_BOX_WIDTH/2, MENU_BOX_Y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, 0x7f555555, 0xff000000);
+
 					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
 					width = 100;
 					bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
 
 					xTextSetAlign(X_ALIGN_CENTER);
 					y = MENU_START_Y;
-					bg3_print_text(X_SCREEN_WIDTH/2, y, "Singleplayer");
-					y += MENU_TEXT_HEIGHT;
-					bg3_print_text(X_SCREEN_WIDTH/2, y, "Multiplayer");
+					bg3_print_text(X_SCREEN_WIDTH/2, y, "Deathmatch");
 					y += MENU_TEXT_HEIGHT;
 					bg3_print_text(X_SCREEN_WIDTH/2, y, "View Stats");
 					y += MENU_TEXT_HEIGHT;
@@ -866,31 +823,9 @@ void bg3_menu_loop(bg3_base* base)
 					y += MENU_TEXT_HEIGHT;
 					bg3_print_text(X_SCREEN_WIDTH/2, y, "Quit");
 					break;
-				case MENU_SCREEN_SINGLEPLAYER:
-					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
-					width = 130;
-					bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
-
-					xTextSetAlign(X_ALIGN_CENTER);
-					y = MENU_START_Y;
-					bg3_print_text(X_SCREEN_WIDTH/2, y, "Deathmatch");
-					y += MENU_TEXT_HEIGHT;
-					bg3_print_text(X_SCREEN_WIDTH/2, y, "Team Deathmatch");
-					y += MENU_TEXT_HEIGHT;
-					bg3_print_text(X_SCREEN_WIDTH/2, y, "Capture The Flag");
-					y += MENU_TEXT_HEIGHT;
-					bg3_print_text(X_SCREEN_WIDTH/2, y, "Back");
-					break;
-				case MENU_SCREEN_MULTIPLAYER:
-					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
-					width = 130;
-					bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
-
-					xTextSetAlign(X_ALIGN_CENTER);
-					y = MENU_START_Y;
-					bg3_print_text(X_SCREEN_WIDTH/2, y, "Back");
-					break;
 				case MENU_SCREEN_STATS:
+					bg3_draw_box(X_SCREEN_WIDTH/2-MENU_BOX_WIDTH/2, MENU_BOX_Y, MENU_BOX_WIDTH, 1.6f*MENU_BOX_HEIGHT, 0x7f555555, 0xff000000);
+
 					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
 					width = 130;
 					bg3_draw_box(X_SCREEN_WIDTH/2-width/2, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
@@ -940,6 +875,8 @@ void bg3_menu_loop(bg3_base* base)
 					bg3_print_text(MENU_VALUE_X, y, "%i", stats.score_history.objectives_achieved);
 					break;
 				case MENU_SCREEN_OPTIONS:
+					bg3_draw_box(X_SCREEN_WIDTH/2-MENU_BOX_WIDTH/2, MENU_BOX_Y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, 0x7f555555, 0xff000000);
+
 					y = MENU_START_Y + selection*MENU_TEXT_HEIGHT;
 					width = MENU_VALUE_X - MENU_START_X + 20;
 					bg3_draw_box(MENU_START_X - 10, y, width, MENU_SELECT_HEIGHT, 0xff7f7f7f, 0xff000000);
@@ -964,6 +901,8 @@ void bg3_menu_loop(bg3_base* base)
 					bg3_print_text(X_SCREEN_WIDTH/2, y, "Apply");
 					break;
 				case MENU_SCREEN_QUIT:
+					bg3_draw_box(X_SCREEN_WIDTH/2-MENU_BOX_WIDTH/2, MENU_BOX_Y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, 0x7f555555, 0xff000000);
+
 					xTextSetAlign(X_ALIGN_CENTER);
 					y = MENU_START_Y;
 					bg3_print_text(X_SCREEN_WIDTH/2, y, "Are you sure?");
