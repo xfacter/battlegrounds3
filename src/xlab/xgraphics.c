@@ -56,11 +56,13 @@ static int x_dither_matrix[2][16] =
 };
 
 static int x_initialized = 0;
+static unsigned int x_vcount = 0;
 
 void xGuInit()
 {
     if (x_initialized) return;
     x_initialized = 1;
+    x_vcount = 0;
 
     #ifdef X_DLIST_DOUBLE
     x_which_list = 0;
@@ -151,7 +153,11 @@ int xGuFrameEnd()
     sceGuSync(0, 0);
     if (x_states & X_WAIT_VBLANK || x_states & X_PSEUDO_AA)
     {
-        sceDisplayWaitVblankStart();
+        if (sceDisplayGetVcount() == x_vcount) {
+            // Wait for the next frame.
+            sceDisplayWaitVblankStart();
+        }
+        x_vcount = sceDisplayGetVcount();
     }
     x_which_buf = (sceGuSwapBuffers() == x_draw_buf[0] ? 0 : 1);
     #ifdef X_DLIST_DOUBLE

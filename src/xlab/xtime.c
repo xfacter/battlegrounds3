@@ -50,7 +50,7 @@ inline float xTimeGetDeltaTime()
     return delta_time;
 }
 
-inline int xTimeFpsApprox()
+inline int xTimeTickrate()
 {
     return (int)fps;
 }

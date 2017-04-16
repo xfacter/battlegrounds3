@@ -2348,7 +2348,7 @@ void bg3_game_update_render(bg3_base* base, bg3_menu* menu, float dt)
 
 #ifdef X_DEBUG
 	xTextSetAlign(X_ALIGN_LEFT);
-	bg3_print_text(1, X_SCREEN_HEIGHT - 15, "FPS: %f", 1.0f/dt);
+	bg3_print_text(1, X_SCREEN_HEIGHT - 15, "Ticks: %d", xTimeTickrate());
 #endif
 
 

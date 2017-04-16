@@ -17,7 +17,7 @@ extern "C" {
 void xTimeInit();
 void xTimeUpdate();
 float xTimeGetDeltaTime();
-int xTimeFpsApprox();
+int xTimeTickrate();
 float xTimeSecPassed();
 
 #ifdef __cplusplus

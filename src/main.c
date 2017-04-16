@@ -45,6 +45,7 @@ int xMain()
 	xGuPerspective(75.0f, 0.5f, 1000.0f);
 	xGuEnable(X_DITHER_SMOOTH);
 	//xGuEnable(X_PSEUDO_AA);
+	xGuEnable(X_WAIT_VBLANK);
 	sceGuColor(0xffffffff);
 	xGuTexMode(GU_TFX_MODULATE, 1);
 	sceGuEnable(GU_TEXTURE_2D);
@@ -70,6 +71,7 @@ int xMain()
 	float fade = 1.0f;
 	float time = 0.0f;
 	xTimeUpdate();
+	xGuSaveStates();
 	xGuEnable(X_WAIT_VBLANK);
 	while (xRunning() && stage < 4)
 	{
@@ -113,7 +115,7 @@ int xMain()
 		bg3_draw_rect(0, 0, X_SCREEN_WIDTH, X_SCREEN_HEIGHT, GU_COLOR(0.0f, 0.0f, 0.0f, fade));
 		xGuFrameEnd();
 	}
-	xGuDisable(X_WAIT_VBLANK);
+	xGuLoadStates();
 
 	//xTexFree(logo);
 #endif
