@@ -1693,6 +1693,12 @@ void bg3_update_powerups(bg3_powerups* p, bg3_base* base, float dt)
 
 void bg3_draw_powerups(bg3_powerups* p, bg3_base* base, ScePspFMatrix4* view)
 {
+	xGuSaveStates();
+	sceGuDisable(GU_LIGHTING);
+	sceGuDisable(GU_DITHER);
+	sceGuDepthMask(GU_TRUE);
+	sceGuShadeModel(GU_FLAT);
+
 	if (p == NULL || base == NULL) return;
 	xVector3f up_left = {-view->x.x + view->y.x, -view->x.y + view->y.y, -view->x.z + view->y.z};
 	int i;
@@ -1720,4 +1726,8 @@ void bg3_draw_powerups(bg3_powerups* p, bg3_base* base, ScePspFMatrix4* view)
 		}
 
 	}
+
+	sceGuShadeModel(GU_SMOOTH);
+	sceGuDepthMask(GU_FALSE);
+	xGuLoadStates();
 }

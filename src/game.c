@@ -17,7 +17,7 @@
 
 #include "game.h"
 
-#define LOD_DELAY 1.0f
+#define LOD_DELAY 0.1f
 //#define ENABLE_MOTIONBLUR
 #define MOTION_BLUR_STEP (1.0f/60)
 //#define DRAW_ELLIPSOIDS
