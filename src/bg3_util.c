@@ -251,6 +251,20 @@ u32 bg3_set_blend(int mode, u32 fog)
 	return fog;
 }
 
+void bg3_print_full(int x, int y, u32 txt_col, u32 shadow_col, char* fmt, ...)
+{
+	char buffer[256];
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf(buffer, 256, fmt, ap);
+	va_end(ap);
+	xTextSetColor(shadow_col);
+	xTextPrint(x+1, y+1, buffer);
+	xTextSetColor(txt_col);
+	xTextPrint(x, y, buffer);
+	xTextSetColor(0xffffffff);
+}
+
 void bg3_print_text(int x, int y, char* fmt, ...)
 {
 	char buffer[256];
@@ -258,11 +272,7 @@ void bg3_print_text(int x, int y, char* fmt, ...)
 	va_start(ap, fmt);
 	vsnprintf(buffer, 256, fmt, ap);
 	va_end(ap);
-	xTextSetColor(GU_COLOR(0.0f, 0.0f, 0.0f, 1.0f));
-	xTextPrint(x+1, y+1, buffer);
-	xTextSetColor(GU_COLOR(1.0f, 1.0f, 1.0f, 1.0f));
-	xTextPrint(x, y, buffer);
-	xTextSetColor(0xffffffff);
+	bg3_print_full(x, y, 0xffffffff, 0xff000000, buffer);
 }
 
 void bg3_draw_outline(int x, int y, int w, int h, u32 c)

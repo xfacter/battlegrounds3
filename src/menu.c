@@ -17,6 +17,7 @@
 #include "xlab/xgraphics.h"
 
 #include "menu.h"
+#include "bg3_util.h"
 
 #define SCORCH_DECALS 16
 #define BULLET_DECALS 64
@@ -129,20 +130,6 @@ float interpolate(float x, float y, float t)
 	return x + (y-x)*t;
 }
 
-void bg3_print_text_alpha(int x, int y, float alpha, char* fmt, ...)
-{
-	char buffer[256];
-	va_list ap;
-	va_start(ap, fmt);
-	vsnprintf(buffer, 256, fmt, ap);
-	va_end(ap);
-	xTextSetColor(GU_COLOR(0.0f, 0.0f, 0.0f, alpha));
-	xTextPrintf(x+1, y+1, buffer);
-	xTextSetColor(GU_COLOR(1.0f, 1.0f, 1.0f, alpha));
-	xTextPrintf(x, y, buffer);
-	xTextSetColor(0xffffffff);
-}
-
 int inverted;
 float deadzone;
 int control_style;
@@ -155,7 +142,8 @@ void menu_save_settings(bg3_base* base)
 
 	FILE* file = fopen("./config.ini", "w");
 	if (file == NULL) return;
-	fprintf(file, "[config]\r\ninverted = %s\r\ndeadzone = %.2f\r\nstyle = %s", (inverted == 0 ? "false" : "true"), deadzone, (control_style == 0 ? "ANALOG_LOOK" : "ANALOG_MOVE"));
+	fprintf(file, "[config]\r\ninverted = %s\r\ndeadzone = %.2f\r\nstyle = %s",
+	        (inverted == 0 ? "false" : "true"), deadzone, (control_style == 0 ? "ANALOG_LOOK" : "ANALOG_MOVE"));
 	fclose(file);
 }
 
@@ -236,7 +224,7 @@ void bg3_menu_loop(bg3_base* base)
 	}
 
 
-	previews* p = bg3_menu_load_previews(50);
+	previews* p = bg3_menu_load_previews(20);
 	if (p == NULL)
 	{
 		xExit();
@@ -682,7 +670,8 @@ void bg3_menu_loop(bg3_base* base)
 			{
 				xTextSetAlign(X_ALIGN_CENTER);
 				float alpha = 0.6f + 0.4f*x_sinf(2*time);
-				bg3_print_text_alpha(X_SCREEN_WIDTH/2, 200, alpha, "Press Start");
+				bg3_print_full(X_SCREEN_WIDTH/2, 200, GU_COLOR(1.0f, 1.0f, 1.0f, alpha), GU_COLOR(0.0f, 0.0f, 0.0f, alpha),
+				               "Press Start");
 			}
 			else if (screen == MENU_SCREEN_CHOOSE_MAP)
 			{

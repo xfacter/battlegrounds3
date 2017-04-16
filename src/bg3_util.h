@@ -53,6 +53,8 @@ float bg3_ray_ellipsoid_collision(ScePspFMatrix3* inverse_matrix, xVector3f* pos
 
 u32 bg3_set_blend(int mode, u32 fog);
 
+void bg3_print_full(int x, int y, u32 txt_col, u32 shadow_col, char* fmt, ...);
+
 void bg3_print_text(int x, int y, char* fmt, ...);
 
 void bg3_draw_outline(int x, int y, int w, int h, u32 c);

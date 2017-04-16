@@ -56,6 +56,8 @@ extern int xSetupCallbacks()
     return thid;
 }
 
+extern int xMain();
+
 #ifdef X_PSP_KERNEL
 static int xUserThread(SceSize args, void* argp)
 {

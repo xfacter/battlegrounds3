@@ -34,9 +34,17 @@ INCDIR =
 LIBDIR =
 LIBS = -lpspgum_vfpu -lpspvfpu -lpspgu -lpspaudiolib -lpspaudio -lpsprtc -lm
 LDFLAGS =
+
+VERSION_MAJOR = 0
+VERSION_MINOR = 5
+VERSION_PATCH = 0
+VERSION_EXTRA =
 ### END PROJECT SETTINGS ###
 
 # Generally should not need to edit below this line
+
+VERSION_FULL = v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)$(VERSION_EXTRA)
+ARCHIVE_NAME = $(BIN_NAME)-$(VERSION_FULL)
 
 # Destination for install
 ifeq ($(DESTDIR),)
@@ -84,7 +92,7 @@ dirs:
 
 .PHONY: deploy
 deploy:
-	rsync -a README.md $(RES_PATH)/ $(BIN_PATH)
+	rsync -a README.md LICENSE.txt $(RES_PATH)/ $(BIN_PATH)
 
 .PHONY: install
 install:
@@ -96,10 +104,14 @@ install:
 
 .PHONY: clean_all
 clean_all:
-	$(RM) -r bin build
+	$(RM) -r bin build $(ARCHIVE_NAME).zip
 
 .PHONY: clean
 clean: clean_all
+
+.PHONY: archive
+archive: release
+	7z a -tzip "$(ARCHIVE_NAME).zip" -w $(BIN_BASE)/release/.
 
 .PHONY: all
 PSPSDK = $(shell psp-config --pspsdk-path)
